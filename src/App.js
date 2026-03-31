@@ -1003,4 +1003,3 @@ export default function IntesaVincente() {
     </div>
   );
 }
-export default IntesaVincente;
