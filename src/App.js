@@ -1,9 +1,16 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // ═══════════════════════════════════════════════════
-// PAROLE SINGOLE — 3000+ parole italiane
+// CONFIGURAZIONE SUPABASE
 // ═══════════════════════════════════════════════════
-const PAROLE_SINGOLE = [
+const SUPABASE_URL = "https://mjubkdvqhpdbjbcgjzcw.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qdWJrZHZxaHBkYmpiY2dqemN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTIzNjMsImV4cCI6MjA5MDYyODM2M30.U4waGWzPx7zC0Z_ypukj5K7aXoK6pDf6SP-e6TcKJRc";
+const BUZZ_TIMEOUT = 4; 
+
+// ═══════════════════════════════════════════════════
+// DATABASE PAROLE COMPLETO (VECCHIE + NUOVE)
+// ═══════════════════════════════════════════════════
+const DATABASE_BASE = [
   // ANIMALI (200+)
   "Aquila","Balena","Cammello","Delfino","Elefante","Falco","Gazzella","Ippopotamo",
   "Leone","Lupo","Medusa","Pantera","Rinoceronte","Serpente","Tigre","Volpe","Zebra",
@@ -350,6 +357,9 @@ const PAROLE_SINGOLE = [
   "Monastero","Convento","Oratorio",
   "Bivio","Incrocio","Svincolo","Cavalcavia","Sottopassaggio","Galleria",
   "Tunnel","Viadotto","Casello","Semaforo","Segnale"
+  
+  // --- I NUOVI VERBI ALL'INFINITO (DATABASE ESPANSO) ---
+  "Abbandonare","Abbagliare","Abbinare","Abitare","Abituare","Accadere","Accarezzare","Accendere","Accettare","Accogliere","Accompagnare","Acconsentire","Accorgersi","Accumulare","Accusare","Acquistare","Adattare","Addolcire","Addormentare","Adempiere","Aderire","Adoperare","Adorare","Adornare","Adottare","Affacciarsi","Affamare","Affascinare","Affermare","Afferrare","Affidare","Affilare","Affittare","Affliggere","Affogare","Affondare","Affrontare","Agevolare","Agganciare","Aggiornare","Aggirare","Aggiungere","Aggiustare","Aggredire","Aggregare","Agitare","Aiutare","Alimentare","Allargare","Allarmare","Allenare","Allevare","Allontanare","Alludere","Alzare","Amare","Ammettere","Amministrare","Ammirare","Ammonire","Ammorbidire","Analizzare","Andare","Annotare","Annunciare","Annullare","Anticipare","Apparire","Appartenere","Appassionare","Appellare","Appendere","Applaudire","Applicare","Appoggiare","Apprezzare","Approfondire","Approvare","Aprire","Arredare","Arrestare","Arrivare","Arrossire","Arrostire","Ascoltare","Aspettare","Aspirare","Assaggiare","Assalire","Assecondare","Assicurare","Assistere","Associare","Assolvere","Assorbire","Assumere","Attaccare","Attendere","Atterrare","Attingere","Attirare","Attivare","Attraversare","Attribuire","Aumentare","Avanzare","Avere","Avvertire","Avvicinare","Avvolgere","Azzardare","Baciare","Bagnare","Ballare","Barattare","Bastare","Battere","Beffare","Benedire","Bere","Biasimare","Bighellonare","Bloccare","Bollire","Brillare","Bruciare","Brontolare","Buffare","Buttare","Cadere","Calare","Calcolare","Calmare","Calpestare","Cambiare","Camminare","Cancellare","Cantare","Capire","Capovolgere","Caricare","Carpire","Cavalcare","Cedere","Celebrare","Cercare","Certificare","Cestinare","Chiamare","Chiedere","Chiudere","Circondare","Citare","Classificare","Cucinare","Cucire","Curare","Custodire","Danzare","Dare","Decidere","Decifrare","Declinare","Decollare","Dedurre","Definire","Delegare","Deliberare","Deludere","Denunciare","Deporre","Descrivere","Desiderare","Destinare","Determinare","Dettare","Deviare","Dialogare","Dichiarare","Difendere","Diffondere","Digerire","Digitare","Dimenticare","Dimostrare","Dipingere","Dire","Dirigere","Discutere","Disegnare","Disfare","Disporre","Distruggere","Divertire","Dividere","Divulgare","Documentare","Domandare","Dormire","Dovere","Dubitare","Durare","Eccellere","Eclissare","Educare","Effettuare","Elaborare","Eleggere","Elevare","Eliminare","Elogiare","Emanare","Emergere","Emettere","Emozionare","Entrare","Esagerare","Esaltare","Esaminare","Esasperare","Escludere","Eseguire","Esercitare","Esigere","Esistere","Esitare","Espandere","Esperire","Esplodere","Esplorare","Esporre","Esprimere","Essere","Estrarre","Evaporare","Evidenziare","Evitare","Evocare","Fabbricare","Fallire","Falsificare","Faticare","Favorire","Fermare","Festeggiare","Fidarsi","Figurare","Filtrare","Finire","Fissare","Fluttuare","Fondare","Formare","Forzare","Fotografare","Frenare","Frequentare","Friggere","Fuggire","Fumare","Funzionare","Garantire","Gareggiare","Gattonare","Gelare","Generare","Gestire","Gettare","Giocare","Girare","Giudicare","Giungere","Giurare","Godere","Governare","Graffiare","Gratificare","Gridare","Guadagnare","Guardare","Guarire","Guidare","Gustare","Illudere","Illuminare","Immaginare","Imparare","Impedire","Impiegare","Imporre","Imprimere","Inaugurare","Incanalare","Incantare","Incapricciarsi","Incedere","Incentivare","Inchiudere","Inciampare","Incidere","Incoraggiare","Incrementare","Incuriosire","Indicare","Indovinare","Indurre","Infilare","Infliggere","Informare","Ingannare","Ingrandire","Iniziare","Innaffiare","Innamorarsi","Innalzare","Innestare","Inoltrare","Inquadrare","Inquietare","Inseguire","Inserire","Insegnare","Insistere","Ispirare","Installare","Intuire","Inveire","Inventare","Invertire","Investire","Inviare","Invitare","Invocare","Ipotizzare","Irrorare","Iscriversi","Istruire","Lanciare","Lasciare","Lavorare","Legare","Leggere","Lievitare","Limitare","Litigare","Lodare","Lottare","Luccicare","Lucidare","Lusingare","Macinare","Mandare","Mangiare","Manifestare","Mantenere","Maturare","Mediare","Meditare","Menzionare","Meritare","Mescolare","Mettere","Migliorare","Minacciare","Misurare","Modificare","Mordere","Morire","Mostrare","Muovere","Mutilare","Narrare","Nascere","Nascondere","Navigare","Negare","Negoziare","Nominare","Notare","Nuotare","Nutrire","Obbedire","Obiettare","Obbligare","Occupare","Odiare","Offrire","Oltrepassare","Omaggiare","Ommettere","Onorare","Operare","Opinare","Opporsi","Ordinare","Organizzare","Orientare","Ornare","Osservare","Ottenere","Ottimizzare","Ovviare","Pagare","Paragonare","Parare","Parlare","Partecipare","Partire","Passare","Pattinare","Peculiarizzare","Pedalare","Penare","Pensare","Percepire","Perdere","Perdonare","Perfezionare","Perforare","Permanere","Permettere","Perseguire","Persistere","Personalizzare","Persuadere","Pescare","Piacere","Piangere","Pianificare","Piazzare","Picchiettare","Piegare","Piovere","Pitturare","Pizzicare","Placare","Pianificare","Ponderare","Porre","Portare","Possedere","Posticipare","Potere","Pranzare","Praticare","Precedere","Precipitare","Precisare","Predire","Preferire","Pregare","Prelevare","Premere","Prenotare","Preoccuparsi","Preparare","Presentare","Preservare","Prestare","Presumere","Pretendere","Prevalere","Prevedere","Prevenire","Privare","Procedere","Proclamare","Procurare","Produrre","Progettare","Programmare","Progredire","Proibire","Prolungare","Promettere","Promuovere","Pronunciare","Proporre","Prorogare","Proseguire","Provare","Provocare","Provvedere","Pubblicare","Pulire","Pungere","Punire","Puntare","Puntualizzare","Qualificare","Quagliare","Questionare","Quietare","Quotare","Raccogliere","Raccomandare","Raccontare","Raddoppiare","Rafforzare","Raggiungere","Ragionare","Rallegrarsi","Rallentare","Rappresentare","Rassicurare","Reagire","Realizzare","Recuperare","Redigere","Regalare","Registrare","Regnare","Relazionare","Remare","Rende","Resistere","Respirare","Restare","Restituire","Rialzare","Riassumere","Ribadire","Ricamare","Ricercare","Ricevere","Richiedere","Riciclare","Ricordare","Riconoscere","Ricostruire","Ridurre","Riflettere","Rifiutare","Rigenerare","Riguardare","Rilasciare","Rilevare","Rimanere","Rimediare","Rimettere","Rimodernare","Rimuovere","Rinascere","Rincontrare","Rinfrescare","Ringraziare","Rinnovare","Rinunciare","Riparare","Ripartire","Ripetere","Riporre","Riportare","Riposare","Ripristinare","Riprodurre","Ripulire","Rischiare","Risolvere","Risparmiare","Rispettare","Rispondere","Ristorare","Risultare","Ritardare","Ritenere","Ritirare","Ritornare","Ritrovare","Riuscire","Rivelare","Rivedere","Rivivere","Rivolgere","Rovinare","Rubare","Ruminare","Ruotare","Ruzzolare","Sabbiare","Sacrificare","Salire","Saltare","Salutare","Salvare","Sanare","Sapere","Sbagliare","Sbalordire","Sbandare","Sbarcare","Sbarrare","Sbattere","Sbiancare","Sbloccare","Sbocciare","Sbottonare","Sbranare","Sbrigare","Scadere","Scagliare","Scalare","Scaldare","Scambiare","Scappare","Scaricare","Scartare","Scatenare","Scavare","Scegliere","Scendere","Scherzare","Schiacciare","Schierare","Schivare","Scivolare","Scollegare","Scommettere","Sconfortare","Scontare","Sconvolgere","Scoprire","Scorgere","Scorrere","Scovare","Scrivere","Scrutare","Scuotere","Scurire","Sdebitarsi","Sdoganare","Sdraiarsi","Sedare","Sedurre","Segnare","Seguire","Selezionare","Seminare","Sembrare","Sentire","Separare","Seppellire","Serbare","Serrare","Servire","Sfidare","Sfilare","Sfogliare","Sforzare","Sfruttare","Sfumare","Sganciare","Sgomberare","Sgridare","Sguinzagliare","Sigillare","Silenziare","Simulare","Sincronizzare","Sistemare","Slegare","Slittare","Sloggiare","Smaltire","Smarrire","Smentire","Smettere","Smontare","Smussare","Snellire","Snodare","Soffiare","Soffocare","Soffrire","Sognare","Solcare","Sollecitare","Sollevare","Sommare","Sondare","Sopportare","Sopravvivere","Sorgere","Sorprendere","Sorridere","Sorvegliare","Sospendere","Sospirare","Sostenere","Sostituire","Sottrarre","Spalancare","Spalmare","Sparare","Sparire","Spartire","Spaventare","Spaziare","Spedire","Spegnere","Sperare","Sperimentare","Spezzare","Spiegare","Spingere","Spirare","Splendere","Spogliare","Spostare","Sprecare","Spremere","Spuntare","Sputare","Stabilire","Staccare","Stancare","Stappare","Stare","Stendere","Sterzare","Stimare","Stimolare","Stipulare","Stirare","Stordire","Stravolgere","Strepitare","Stringere","Strizzare","Studiare","Stupire","Suonare","Superare","Supporre","Sussurrare","Svalutare","Svegliare","Svelare","Sventolare","Sviluppare","Svolgere","Svuotare","Tacere","Tagliare","Tardare","Tatuare","Teletrasportare","Temere","Temperare","Tendere","Tenere","Tentare","Terminare","Terzare","Testimoniare","Tifare","Tingere","Tirare","Toccare","Togliere","Tollerare","Tornare","Tostare","Tramandare","Tramite","Tranciare","Tranquillizzare","Trarre","Trascendere","Trascinare","Trascrivere","Trasferire","Trasformare","Trasmettere","Trasportare","Trattare","Trattenere","Traversare","Tremare","Trepidare","Trionfare","Trisciare","Tritare","Trovare","Tuffarsi","Tutelare","Uccidere","Udire","Uguagliare","Ululare","Umanizzare","Umettare","Umiliare","Unificare","Unire","Urgonare","Urlare","Urtare","Usare","Uscire","Usufruire","Usurpare","Utilizzare","Vacillare","Vagare","Vagliare","Valere","Validare","Valutare","Vandallizzare","Vantare","Varare","Variare","Vedere","Vegliare","Venerare","Venire","Ventilare","Verificare","Versare","Vestire","Viaggiare","Vietare","Vigilare","Vincere","Vincolare","Visitare","Vivere","Viziarsi","Vociare","Vogare","Volare","Volere","Volgere","Voltare","Vuotare","Zampillare","Zappare","Zittire","Zoppicare"
 ];
 
 // ═══════════════════════════════════════════════════
@@ -634,372 +644,296 @@ const PAROLE_COMPOSTE = [
 ];
 
 // ═══════════════════════════════════════════════════
-// UTILITY
+// LOGICA SHUFFLE (MAZZO DI CARTE)
 // ═══════════════════════════════════════════════════
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
+function shuffleArray(array) {
+  const newArr = [...array];
+  for (let i = newArr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
   }
-  return a;
+  return newArr;
 }
 
 // ═══════════════════════════════════════════════════
-// MAIN APP
+// COMPONENTE BUZZER (GIOCATORE)
 // ═══════════════════════════════════════════════════
-export default function IntesaVincente() {
-  const [gameState, setGameState] = useState("setup");
-  const [timeLimit, setTimeLimit] = useState(60);
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [score, setScore] = useState(0);
-  const [isRaddoppio, setIsRaddoppio] = useState(false);
-  const [currentWord, setCurrentWord] = useState(null);
-  const [lastWord, setLastWord] = useState(null);
-  const [lastResult, setLastResult] = useState(null);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [waitingForExtract, setWaitingForExtract] = useState(true);
-  const [history, setHistory] = useState([]);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [errorCount, setErrorCount] = useState(0);
-  const [passiRimanenti, setPassiRimanenti] = useState(3); // ⚡ NUOVO STATO PER IL "PASSO"
-
-  const singleQueueRef = useRef([]);
-  const composteQueueRef = useRef([]);
-  const timerRef = useRef(null);
-  const startTimeRef = useRef(null);
-  const remainingAtStartRef = useRef(0);
-
-  const initQueues = useCallback(() => {
-    singleQueueRef.current = shuffle(PAROLE_SINGOLE);
-    composteQueueRef.current = shuffle(PAROLE_COMPOSTE);
-  }, []);
-
-  const getNextWord = useCallback(() => {
-    const queue = isRaddoppio ? composteQueueRef.current : singleQueueRef.current;
-    if (queue.length === 0) {
-      if (isRaddoppio) composteQueueRef.current = shuffle(PAROLE_COMPOSTE);
-      else singleQueueRef.current = shuffle(PAROLE_SINGOLE);
-      return (isRaddoppio ? composteQueueRef.current : singleQueueRef.current).pop();
-    }
-    return queue.pop();
-  }, [isRaddoppio]);
+function PlayerBuzzer({ roomCode, onExit }) {
+  const [supabase, setSupabase] = useState(null);
+  const [status, setStatus] = useState("connecting");
+  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
-    if (timerRunning && timeLeft > 0) {
-      startTimeRef.current = Date.now();
-      remainingAtStartRef.current = timeLeft;
-      timerRef.current = setInterval(() => {
-        const elapsed = (Date.now() - startTimeRef.current) / 1000;
-        const newTime = Math.max(0, remainingAtStartRef.current - elapsed);
-        setTimeLeft(newTime);
-        if (newTime <= 0) {
-          clearInterval(timerRef.current);
-          setTimerRunning(false);
-          setGameState("gameover");
-        }
-      }, 50);
-    }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [timerRunning]);
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+    script.async = true;
+    script.onload = () => {
+      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      setSupabase(client);
+      
+      const channel = client.channel(`room_${roomCode.toUpperCase()}`)
+        .on("broadcast", { event: "result" }, ({ payload }) => {
+          setFeedback(payload.type);
+          setTimeout(() => setFeedback(null), 2000);
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") setStatus("ready");
+          else setStatus("error");
+        });
 
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href = "https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-  }, []);
+      return () => client.removeChannel(channel);
+    };
+    document.body.appendChild(script);
+  }, [roomCode]);
 
-  const startGame = () => {
-    initQueues();
-    setTimeLeft(timeLimit);
-    setScore(0);
-    setCorrectCount(0);
-    setErrorCount(0);
-    setPassiRimanenti(3); // ⚡ RESET DEI PASSI
-    setHistory([]);
-    setCurrentWord(null);
-    setLastWord(null);
-    setLastResult(null);
-    setWaitingForExtract(true);
-    setTimerRunning(false);
-    setIsRaddoppio(false);
-    setGameState("playing");
+  const handleBuzz = () => {
+    if (status !== "ready" || feedback) return;
+    if (navigator.vibrate) navigator.vibrate(100);
+    supabase.channel(`room_${roomCode.toUpperCase()}`).send({
+      type: "broadcast",
+      event: "buzz",
+      payload: { timestamp: Date.now() }
+    });
   };
 
-  const extractWord = () => {
-    if (timeLeft <= 0 || !waitingForExtract) return;
-    const word = getNextWord();
-    setCurrentWord(word);
-    setLastWord(word);
-    setLastResult(null);
-    setWaitingForExtract(false);
-    setTimerRunning(true);
-  };
-
-  const handleCorrect = () => {
-    if (waitingForExtract || !currentWord) return;
-    setTimerRunning(false);
-    const pts = isRaddoppio ? 2 : 1;
-    setScore(p => p + pts);
-    setCorrectCount(p => p + 1);
-    setHistory(p => [...p, { word: currentWord, correct: true }]);
-    setLastResult("correct");
-    setCurrentWord(null);
-    setWaitingForExtract(true);
-  };
-
-  const handleError = () => {
-    if (waitingForExtract || !currentWord) return;
-    setTimerRunning(false);
-    const pts = isRaddoppio ? 2 : 1;
-    setScore(p => Math.max(0, p - pts));
-    setErrorCount(p => p + 1);
-    setHistory(p => [...p, { word: currentWord, correct: false }]);
-    setLastResult("error");
-    setCurrentWord(null);
-    setWaitingForExtract(true);
-  };
-
-  // ⚡ GESTIONE "PASSO"
-  const handlePasso = () => {
-    if (waitingForExtract || !currentWord || passiRimanenti <= 0) return;
-    setPassiRimanenti(p => p - 1);
-    // Estrae subito la nuova parola senza fermare il timer
-    const word = getNextWord();
-    setCurrentWord(word);
-    setLastWord(word);
-    setLastResult(null);
-  };
-
-  const toggleRaddoppio = () => {
-    if (!waitingForExtract) return;
-    setIsRaddoppio(p => !p);
-  };
-
-  const displayTime = Math.ceil(timeLeft);
-  const timerPercent = (timeLeft / timeLimit) * 100;
-  const timerColor = timeLeft <= 10 ? "#FF3B30" : timeLeft <= 20 ? "#FF9500" : "#34C759";
-  const F = "'Outfit', system-ui, -apple-system, sans-serif";
-
-  // ─── SETUP ───
-  if (gameState === "setup") {
-    return (
-      <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0a0e27,#1a1040 40%,#0d1b3e)", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 20px", userSelect:"none", WebkitUserSelect:"none", WebkitTapHighlightColor:"transparent" }}>
-        <div style={{ textAlign:"center", marginBottom:40 }}>
-          <div style={{ fontSize:64, marginBottom:8 }}>⛓️</div>
-          <h1 style={{ fontSize:38, fontWeight:900, margin:0, letterSpacing:"-1px", background:"linear-gradient(135deg,#fff,#a0c4ff)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Intesa Vincente</h1>
-          <p style={{ fontSize:14, color:"rgba(255,255,255,0.4)", margin:"8px 0 0", letterSpacing:4, textTransform:"uppercase", fontWeight:600 }}>Reazione a Catena</p>
-        </div>
-        <div style={{ background:"rgba(255,255,255,0.06)", borderRadius:24, padding:"32px 28px", width:"100%", maxWidth:380, textAlign:"center", border:"1px solid rgba(255,255,255,0.08)", marginBottom:32 }}>
-          <p style={{ fontSize:13, letterSpacing:3, color:"rgba(255,255,255,0.45)", margin:"0 0 20px", fontWeight:700 }}>TEMPO (SECONDI)</p>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:28 }}>
-            {/* ⚡ LOGICA CAMBIATA QUI (Minimo 55) */}
-            <button onClick={() => setTimeLimit(p => Math.max(55, p - 5))} style={{ width:64, height:64, borderRadius:"50%", border:"2px solid rgba(255,255,255,0.2)", background:"rgba(255,255,255,0.08)", color:"#fff", fontSize:28, fontWeight:800, cursor:"pointer", fontFamily:F }}>−5</button>
-            <span style={{ fontSize:64, fontWeight:900, minWidth:90, textAlign:"center", fontVariantNumeric:"tabular-nums" }}>{timeLimit}</span>
-            {/* ⚡ LOGICA CAMBIATA QUI (Massimo 65) */}
-            <button onClick={() => setTimeLimit(p => Math.min(65, p + 5))} style={{ width:64, height:64, borderRadius:"50%", border:"2px solid rgba(255,255,255,0.2)", background:"rgba(255,255,255,0.08)", color:"#fff", fontSize:28, fontWeight:800, cursor:"pointer", fontFamily:F }}>+5</button>
-          </div>
-        </div>
-        <button onClick={startGame} style={{ width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none", background:"linear-gradient(135deg,#4A90D9,#357ABD)", color:"#fff", fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer", boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F }}>INIZIA IL GIOCO</button>
-        <p style={{ marginTop:24, fontSize:13, color:"rgba(255,255,255,0.25)", textAlign:"center" }}>{PAROLE_SINGOLE.length} parole · {PAROLE_COMPOSTE.length} espressioni</p>
-      </div>
-    );
-  }
-
-  // ─── GAME OVER ───
-  if (gameState === "gameover") {
-    return (
-      <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0a0e27,#1a1040 40%,#0d1b3e)", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", padding:"36px 20px", overflow:"auto", userSelect:"none", WebkitUserSelect:"none" }}>
-        <div style={{ textAlign:"center", marginBottom:24 }}>
-          <div style={{ fontSize:52 }}>🏁</div>
-          <h2 style={{ fontSize:32, fontWeight:900, margin:"8px 0 0" }}>Tempo Scaduto!</h2>
-        </div>
-        <div style={{ textAlign:"center", background:"rgba(255,255,255,0.06)", borderRadius:28, padding:"28px 56px", border:"1px solid rgba(255,255,255,0.08)", marginBottom:20 }}>
-          <div style={{ fontSize:72, fontWeight:900, lineHeight:1, background:"linear-gradient(135deg,#FFD700,#FFA500)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>{score}</div>
-          <div style={{ fontSize:15, letterSpacing:4, color:"rgba(255,255,255,0.45)", fontWeight:700, marginTop:6 }}>PUNTI</div>
-        </div>
-        <div style={{ display:"flex", gap:12, width:"100%", maxWidth:380, marginBottom:20 }}>
-          {[{n:correctCount,l:"Corrette",c:"#34C759"},{n:errorCount,l:"Errori",c:"#FF3B30"},{n:correctCount+errorCount,l:"Totale",c:"#FF9500"}].map((s,i)=>(
-            <div key={i} style={{ flex:1, textAlign:"center", padding:"16px 8px", borderRadius:16, background:"rgba(255,255,255,0.04)", borderTop:`3px solid ${s.c}` }}>
-              <div style={{ fontSize:30, fontWeight:900, color:s.c, lineHeight:1 }}>{s.n}</div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginTop:4 }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
-        {history.length > 0 && (
-          <div style={{ width:"100%", maxWidth:380, marginBottom:24 }}>
-            <p style={{ fontSize:12, letterSpacing:3, color:"rgba(255,255,255,0.35)", margin:"0 0 12px", fontWeight:700 }}>RIEPILOGO PAROLE</p>
-            <div style={{ maxHeight:260, overflowY:"auto", display:"flex", flexDirection:"column", gap:5 }}>
-              {history.map((h,i)=>(
-                <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:"rgba(255,255,255,0.04)", borderRadius:12, borderLeft:`4px solid ${h.correct?"#34C759":"#FF3B30"}` }}>
-                  <span style={{ fontSize:15, fontWeight:600 }}>{h.word}</span>
-                  <span style={{ fontSize:16, fontWeight:800, padding:"2px 10px", borderRadius:8, background:h.correct?"rgba(52,199,89,0.2)":"rgba(255,59,48,0.2)", color:h.correct?"#34C759":"#FF3B30" }}>{h.correct?"✓":"✗"}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <button onClick={()=>{setGameState("setup");setIsRaddoppio(false);}} style={{ width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none", background:"linear-gradient(135deg,#4A90D9,#357ABD)", color:"#fff", fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer", boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F }}>GIOCA ANCORA</button>
-      </div>
-    );
-  }
-
-  // ─── PLAYING ───
-  const showWord = lastWord !== null;
-
-  // Dynamic font size based on word length for maximum readability
-  const getWordFontSize = (word) => {
-    if (!word) return 48;
-    const len = word.length;
-    if (len <= 7) return 56;
-    if (len <= 10) return 48;
-    if (len <= 14) return 40;
-    if (len <= 18) return 34;
-    if (len <= 24) return 28;
-    return 24;
-  };
+  const bgColor = feedback === "correct" ? "#34C759" : feedback === "error" ? "#FF3B30" : "#121212";
 
   return (
-    <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0a0e27,#1a1040 40%,#0d1b3e)", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", userSelect:"none", WebkitUserSelect:"none", WebkitTapHighlightColor:"transparent", WebkitTouchCallout:"none" }}>
+    <div style={{
+      height: "100vh", width: "100vw", backgroundColor: bgColor,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      transition: "background-color 0.3s"
+    }}>
+      <div style={{ position: "absolute", top: 20, left: 20, color: "#fff", opacity: 0.5 }}>
+        Stanza: {roomCode.toUpperCase()}
+      </div>
+      <button onClick={onExit} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: "#fff", fontSize: 14 }}>ESCI</button>
       
-      {/* Timer Bar */}
-      <div style={{ width:"100%", height:8, background:"rgba(255,255,255,0.08)", position:"sticky", top:0, zIndex:10 }}>
-        <div style={{ height:"100%", borderRadius:"0 4px 4px 0", width:`${timerPercent}%`, background:timerColor, transition:timerRunning?"width 0.1s linear":"none" }} />
-      </div>
-
-      {/* Top: Timer + Score */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", width:"100%", maxWidth:420, padding:"12px 20px 6px" }}>
-        <div style={{ width:90, height:90, borderRadius:"50%", border:`4px solid ${timerColor}`, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.35)", color:timerColor }}>
-          <span style={{ fontSize:40, fontWeight:900, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>{displayTime}</span>
-          <span style={{ fontSize:11, fontWeight:700, opacity:0.7, letterSpacing:1, textTransform:"uppercase" }}>sec</span>
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", background:"rgba(255,255,255,0.06)", borderRadius:20, padding:"14px 30px", border:"1px solid rgba(255,255,255,0.08)" }}>
-          <span style={{ fontSize:44, fontWeight:900, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>{score}</span>
-          <span style={{ fontSize:12, textTransform:"uppercase", letterSpacing:3, opacity:0.45, fontWeight:700, marginTop:4 }}>punti</span>
-        </div>
-      </div>
-
-      {/* Raddoppio */}
-      <button onClick={toggleRaddoppio} disabled={!waitingForExtract} style={{
-        margin:"6px 0 2px", padding:"10px 24px", borderRadius:28,
-        border:`2px solid ${isRaddoppio?"#FF9500":"rgba(255,255,255,0.12)"}`,
-        background:isRaddoppio?"rgba(255,149,0,0.2)":"rgba(255,255,255,0.05)",
-        color:isRaddoppio?"#FF9500":"rgba(255,255,255,0.4)",
-        fontSize:14, fontWeight:800, letterSpacing:1.5, cursor:"pointer",
-        textTransform:"uppercase", fontFamily:F,
-        opacity:waitingForExtract?1:0.35, transition:"all 0.2s"
-      }}>
-        {isRaddoppio ? "⚡ RADDOPPIO ×2" : "Raddoppio"}
+      <button 
+        onClick={handleBuzz}
+        disabled={status !== "ready" || !!feedback}
+        style={{
+          width: "80vw", height: "80vw", borderRadius: "50%",
+          background: "radial-gradient(circle, #FF3B30 0%, #8B0000 100%)",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+          color: "#fff", fontSize: 32, fontWeight: 900,
+          border: "10px solid rgba(255,255,255,0.1)",
+          cursor: "pointer", WebkitTapHighlightColor: "transparent"
+        }}
+      >
+        {status === "connecting" ? "..." : "PREMI!"}
       </button>
-
-      {/* ═══ EXTRACT BUTTON — ABOVE word, always accessible ═══ */}
-      <div style={{ width:"100%", maxWidth:420, padding:"10px 20px 0" }}>
-        <button onClick={extractWord} disabled={!waitingForExtract || timeLeft <= 0} style={{
-          width:"100%", padding:"22px 16px", borderRadius:20,
-          border:waitingForExtract?"2.5px solid rgba(74,144,217,0.6)":"2px solid rgba(255,255,255,0.06)",
-          background:waitingForExtract?"linear-gradient(135deg,rgba(74,144,217,0.3),rgba(53,122,189,0.15))":"rgba(255,255,255,0.02)",
-          color:waitingForExtract?"#fff":"rgba(255,255,255,0.15)",
-          cursor:waitingForExtract?"pointer":"default",
-          display:"flex", alignItems:"center", justifyContent:"center", gap:14,
-          fontFamily:F, transition:"all 0.2s",
-          opacity:waitingForExtract?1:0.3,
-          boxShadow:waitingForExtract?"0 4px 20px rgba(74,144,217,0.2)":"none"
-        }}>
-          <span style={{ fontSize:30 }}>🎲</span>
-          <span style={{ fontSize:26, fontWeight:900, letterSpacing:5 }}>ESTRAI</span>
-        </button>
-      </div>
-
-      {/* ═══ WORD DISPLAY — BIG, stays visible, readable from distance ═══ */}
-      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", width:"100%", maxWidth:420, padding:"10px 16px", minHeight:140 }}>
-        {showWord ? (
-          <div style={{
-            width:"100%", textAlign:"center", position:"relative", padding:"28px 16px",
-            background: lastResult==="correct"?"rgba(52,199,89,0.1)" : lastResult==="error"?"rgba(255,59,48,0.1)" : "rgba(255,255,255,0.05)",
-            borderRadius:28,
-            border: lastResult==="correct"?"3px solid rgba(52,199,89,0.35)" : lastResult==="error"?"3px solid rgba(255,59,48,0.35)" : "2px solid rgba(255,255,255,0.1)",
-            transition:"all 0.25s ease"
-          }}>
-            <div style={{
-              fontSize: getWordFontSize(lastWord),
-              fontWeight:900, lineHeight:1.15, textTransform:"uppercase", letterSpacing:2,
-              wordBreak:"break-word",
-              color: lastResult==="correct"?"#34C759" : lastResult==="error"?"#FF3B30" : "#fff",
-              textShadow: lastResult ? "none" : "0 2px 12px rgba(255,255,255,0.1)"
-            }}>{lastWord}</div>
-            {isRaddoppio && (
-              <div style={{ position:"absolute", top:-14, right:-6, background:"#FF9500", color:"#fff", fontSize:16, fontWeight:900, padding:"5px 14px", borderRadius:14, boxShadow:"0 2px 8px rgba(255,149,0,0.4)" }}>×2</div>
-            )}
-            {lastResult && (
-              <div style={{ marginTop:12, fontSize:16, fontWeight:800, letterSpacing:2, color:lastResult==="correct"?"#34C759":"#FF3B30" }}>
-                {/* ⚡ LOGICA CAMBIATA QUI ("CORRETTA" e "SBAGLIATA") */}
-                {lastResult==="correct"?"✓ CORRETTA":"✗ SBAGLIATA"}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{ textAlign:"center", color:"rgba(255,255,255,0.12)", fontSize:18, fontWeight:600, letterSpacing:1 }}>
-            Premi ESTRAI per iniziare
-          </div>
-        )}
-      </div>
-
-      {/* ⚡ NUOVO: PULSANTE PASSO */}
-      <div style={{ width:"100%", maxWidth:420, padding:"0 20px 10px" }}>
-        <button
-          onClick={handlePasso}
-          disabled={waitingForExtract || passiRimanenti <= 0}
-          style={{
-            width:"100%", padding:"12px", borderRadius:20, border:"none",
-            background: (waitingForExtract || passiRimanenti <= 0) ? "rgba(255,215,0,0.2)" : "#FFD700",
-            color: (waitingForExtract || passiRimanenti <= 0) ? "rgba(255,255,255,0.3)" : "#000",
-            fontSize: 20, fontWeight: 900, letterSpacing: 2, 
-            cursor: (waitingForExtract || passiRimanenti <= 0) ? "default" : "pointer",
-            fontFamily: F, textTransform: "uppercase",
-            display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
-            boxShadow: (waitingForExtract || passiRimanenti <= 0) ? "none" : "0 4px 15px rgba(255,215,0,0.3)",
-            transition: "all 0.2s"
-          }}
-        >
-          PASSO ({passiRimanenti})
-        </button>
-      </div>
-
-      {/* ═══ ACTION BUTTONS — HUGE touch targets for frantic play ═══ */}
-      <div style={{ display:"flex", gap:16, width:"100%", maxWidth:420, padding:"0 20px 6px" }}>
-        <button onClick={handleCorrect} disabled={waitingForExtract} style={{
-          flex:1, padding:"34px 12px", borderRadius:24, border:"none", cursor:"pointer",
-          background:"linear-gradient(160deg,#2ECC71,#27AE60)",
-          boxShadow: waitingForExtract ? "none" : "0 6px 28px rgba(46,204,113,0.35)",
-          opacity:waitingForExtract?0.2:1, transition:"opacity 0.15s",
-          display:"flex", flexDirection:"column", alignItems:"center", gap:4, fontFamily:F,
-          WebkitTapHighlightColor:"transparent"
-        }}>
-          <span style={{ fontSize:50, fontWeight:900, color:"#fff", lineHeight:1 }}>✓</span>
-          {/* ⚡ LOGICA CAMBIATA QUI */}
-          <span style={{ fontSize:18, fontWeight:900, color:"rgba(255,255,255,0.9)", letterSpacing:3 }}>CORRETTA</span>
-        </button>
-        <button onClick={handleError} disabled={waitingForExtract} style={{
-          flex:1, padding:"34px 12px", borderRadius:24, border:"none", cursor:"pointer",
-          background:"linear-gradient(160deg,#E74C3C,#C0392B)",
-          boxShadow: waitingForExtract ? "none" : "0 6px 28px rgba(231,76,60,0.35)",
-          opacity:waitingForExtract?0.2:1, transition:"opacity 0.15s",
-          display:"flex", flexDirection:"column", alignItems:"center", gap:4, fontFamily:F,
-          WebkitTapHighlightColor:"transparent"
-        }}>
-          <span style={{ fontSize:50, fontWeight:900, color:"#fff", lineHeight:1 }}>✗</span>
-          {/* ⚡ LOGICA CAMBIATA QUI */}
-          <span style={{ fontSize:18, fontWeight:900, color:"rgba(255,255,255,0.9)", letterSpacing:3 }}>SBAGLIATA</span>
-        </button>
-      </div>
-
-      {/* Mini stats */}
-      <div style={{ display:"flex", gap:16, padding:"8px 0 28px", fontSize:16, fontWeight:800, letterSpacing:1 }}>
-        <span style={{ color:"#34C759" }}>✓ {correctCount}</span>
-        <span style={{ color:"rgba(255,255,255,0.2)" }}>|</span>
-        <span style={{ color:"#FF3B30" }}>✗ {errorCount}</span>
+      <div style={{ marginTop: 40, color: "#fff", fontWeight: 700 }}>
+        {status === "ready" ? "BUZZER ATTIVO" : "CONNESSIONE..."}
       </div>
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════
+// COMPONENTE GIOCO (CONDUTTORE)
+// ═══════════════════════════════════════════════════
+function IntesaVincente({ useRemoteBuzzer, roomCode, onExit }) {
+  const [correctCount, setCorrectCount] = useState(0);
+  const [errorCount, setErrorCount] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [isActive, setIsActive] = useState(false);
+  const [word, setWord] = useState("");
+  const [isDouble, setIsDouble] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [deck, setDeck] = useState(() => shuffleArray(DATABASE_BASE));
+  const [supabase, setSupabase] = useState(null);
+  const [buzzState, setBuzzState] = useState(null);
+
+  useEffect(() => {
+    if (useRemoteBuzzer) {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+      script.async = true;
+      script.onload = () => {
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        setSupabase(client);
+        const channel = client.channel(`room_${roomCode.toUpperCase()}`)
+          .on("broadcast", { event: "buzz" }, () => {
+            if (isActive && !isPaused && !buzzState) handleBuzzEvent();
+          })
+          .subscribe();
+        return () => client.removeChannel(channel);
+      };
+      document.body.appendChild(script);
+    }
+  }, [useRemoteBuzzer, roomCode, isActive, isPaused, buzzState]);
+
+  useEffect(() => {
+    let interval = null;
+    if (isActive && timeLeft > 0 && !isPaused && !buzzState) {
+      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    } else if (timeLeft === 0) {
+      setIsActive(false);
+    }
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft, isPaused, buzzState]);
+
+  useEffect(() => {
+    let t;
+    if (buzzState === "buzzed") {
+      t = setTimeout(() => handleResolution("error"), BUZZ_TIMEOUT * 1000);
+    }
+    return () => clearTimeout(t);
+  }, [buzzState]);
+
+  const handleBuzzEvent = () => {
+    setBuzzState("buzzed");
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  };
+
+  const getNewWord = () => {
+    let currentDeck = [...deck];
+    if (currentDeck.length === 0) currentDeck = shuffleArray(DATABASE_BASE);
+    const nextWord = currentDeck.pop();
+    setDeck(currentDeck);
+    return nextWord;
+  };
+
+  const startGame = () => {
+    setCorrectCount(0);
+    setErrorCount(0);
+    setTimeLeft(60);
+    setWord(getNewWord());
+    setIsActive(true);
+    setIsPaused(false);
+    setBuzzState(null);
+  };
+
+  const handleResolution = (type) => {
+    if (type === "correct") {
+      setCorrectCount(c => c + (isDouble ? 2 : 1));
+      if (supabase) supabase.channel(`room_${roomCode}`).send({ type:"broadcast", event:"result", payload:{type:"correct"} });
+      setWord(getNewWord());
+      setIsDouble(false);
+      setBuzzState(null);
+      setIsPaused(false);
+    } else if (type === "error") {
+      setErrorCount(e => e + 1);
+      setCorrectCount(c => Math.max(0, c - 1));
+      if (supabase) supabase.channel(`room_${roomCode}`).send({ type:"broadcast", event:"result", payload:{type:"error"} });
+      setWord(getNewWord());
+      setIsDouble(false);
+      setBuzzState(null);
+      setIsPaused(false);
+    } else if (type === "pass") {
+      setIsPaused(true);
+      setBuzzState(null);
+      setIsDouble(false);
+    }
+  };
+
+  const handleNextWord = (double = false) => {
+    setWord(getNewWord());
+    setIsDouble(double);
+    setIsPaused(false);
+    setBuzzState(null);
+    if (!isActive) setIsActive(true);
+  };
+
+  const timerColor = buzzState ? "#FFA500" : timeLeft <= 10 ? "#FF3B30" : "#fff";
+
+  return (
+    <div style={{ height: "100vh", backgroundColor: "#000", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", padding: 20 }}>
+      <div style={{ width: "100%", display: "flex", justifyContent: "space-between" }}>
+        <button onClick={onExit} style={{ background: "#333", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 8 }}>Esci</button>
+        <div style={{ fontWeight: 800 }}>{roomCode}</div>
+      </div>
+
+      <div style={{ fontSize: 100, fontWeight: 900, margin: "10px 0" }}>{correctCount}</div>
+
+      <div style={{ width: 100, height: 100, borderRadius: "50%", border: `6px solid ${timerColor}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: timerColor }}>
+        {timeLeft}
+      </div>
+
+      <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.05)", borderRadius: 20, margin: "20px 0" }}>
+        {isActive ? (
+          <>
+            {isDouble && <div style={{ color: "#FFD700", fontWeight: 800 }}>RADDOPPIO</div>}
+            <div style={{ fontSize: 45, fontWeight: 900, textTransform: "uppercase" }}>{word}</div>
+            {isPaused && <div style={{ color: "#666", marginTop: 10 }}>PAUSA</div>}
+          </>
+        ) : (
+          <button onClick={startGame} style={{ padding: "15px 30px", fontSize: 20, fontWeight: 800, borderRadius: 50 }}>INIZIA</button>
+        )}
+      </div>
+
+      <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {buzzState || isPaused ? (
+          <>
+            <button onClick={() => handleResolution("correct")} style={{ gridColumn: "span 2", padding: 20, backgroundColor: "#34C759", border: "none", borderRadius: 12, color: "#fff", fontWeight: 800 }}>CORRETTA</button>
+            <button onClick={() => handleResolution("error")} style={{ padding: 20, backgroundColor: "#FF3B30", border: "none", borderRadius: 12, color: "#fff", fontWeight: 800 }}>SBAGLIATA</button>
+            <button onClick={() => handleResolution("pass")} style={{ padding: 20, backgroundColor: "#444", border: "none", borderRadius: 12, color: "#fff", fontWeight: 800 }}>PASSO</button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => handleNextWord(false)} style={{ gridColumn: "span 2", padding: 20, backgroundColor: "#007AFF", border: "none", borderRadius: 12, color: "#fff", fontWeight: 800 }}>NUOVA PAROLA</button>
+            <button disabled={correctCount < 2} onClick={() => handleNextWord(true)} style={{ padding: 15, backgroundColor: correctCount >= 2 ? "#FFD700" : "#222", borderRadius: 12, fontWeight: 800, opacity: correctCount >= 2 ? 1 : 0.3 }}>RADDOPPIO</button>
+            <button onClick={() => setIsPaused(true)} style={{ padding: 15, backgroundColor: "#333", borderRadius: 12, color: "#fff", fontWeight: 800 }}>PASSO</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// APP PRINCIPALE
+// ═══════════════════════════════════════════════════
+export default function App() {
+  const [view, setView] = useState("home");
+  const [roomCode, setRoomCode] = useState(() => localStorage.getItem("intesa_room") || Math.random().toString(36).substring(2, 6).toUpperCase());
+  const [useRemote, setUseRemote] = useState(true);
+
+  useEffect(() => { localStorage.setItem("intesa_room", roomCode); }, [roomCode]);
+
+  if (view === "home") {
+    return (
+      <div style={{ height:"100vh", backgroundColor:"#000", color:"#fff", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:30, textAlign:"center" }}>
+        <h1 style={{ fontSize:32, fontWeight:900, marginBottom:40 }}>INTESA VINCENTE</h1>
+        <button onClick={() => setView("conduttore_setup")} style={{ width:"100%", padding:20, borderRadius:15, border:"none", backgroundColor:"#fff", color:"#000", fontWeight:800, marginBottom:15 }}>FACCIAMO LE DOMANDE</button>
+        <button onClick={() => setView("giocatore_setup")} style={{ width:"100%", padding:20, borderRadius:15, border:"2px solid #fff", backgroundColor:"transparent", color:"#fff", fontWeight:800 }}>RISPONDO</button>
+      </div>
+    );
+  }
+
+  if (view === "giocatore_setup") {
+    return (
+      <div style={{ height:"100vh", backgroundColor:"#000", color:"#fff", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:30 }}>
+        <h2>Codice Stanza</h2>
+        <input value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} maxLength={4} style={{ width:120, padding:10, fontSize:24, textAlign:"center", margin:"20px 0" }} />
+        <button onClick={() => setView("giocatore_game")} style={{ width:"100%", padding:15, backgroundColor:"#34C759", border:"none", borderRadius:10, color:"#fff", fontWeight:800 }}>APRI IL BUZZER</button>
+        <button onClick={() => setView("home")} style={{ marginTop:20, color:"#666", border:"none", background:"none" }}>Indietro</button>
+      </div>
+    );
+  }
+
+  if (view === "giocatore_game") return <PlayerBuzzer roomCode={roomCode} onExit={() => setView("home")} />;
+
+  if (view === "conduttore_setup") {
+    return (
+      <div style={{ height:"100vh", backgroundColor:"#000", color:"#fff", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:30 }}>
+        <div style={{ backgroundColor:"#111", padding:20, borderRadius:15, textAlign:"center", width:"100%" }}>
+          <div style={{ fontSize:12, opacity:0.5 }}>CODICE STANZA</div>
+          <div style={{ fontSize:36, fontWeight:900, color:"#007AFF" }}>{roomCode}</div>
+          <button onClick={() => setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase())} style={{ background:"none", border:"none", color:"#444", fontSize:10 }}>CAMBIA</button>
+        </div>
+        <div style={{ marginTop:20, display:"flex", gap:10 }}>
+          <input type="checkbox" checked={useRemote} onChange={e => setUseRemote(e.target.checked)} />
+          <span>Usa Buzzer Remoto</span>
+        </div>
+        <button onClick={() => setView("conduttore_game")} style={{ width:"100%", marginTop:30, padding:20, backgroundColor:"#007AFF", border:"none", borderRadius:15, color:"#fff", fontWeight:800 }}>INIZIA GIOCO</button>
+        <button onClick={() => setView("giocatore_setup")} style={{ marginTop:20, color:"#007AFF", background:"none", border:"none", fontWeight:700 }}>Rispondi tu? Clicca qui</button>
+      </div>
+    );
+  }
+
+  if (view === "conduttore_game") return <IntesaVincente useRemoteBuzzer={useRemote} roomCode={roomCode} onExit={() => setView("home")} />;
+
+  return null;
 }
