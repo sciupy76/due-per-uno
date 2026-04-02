@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // ═══════════════════════════════════════════════════
-// CONFIGURAZIONE SUPABASE
+// SUPABASE CONFIG
 // ═══════════════════════════════════════════════════
 const SUPABASE_URL = "https://mjubkdvqhpdbjbcgjzcw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qdWJrZHZxaHBkYmpiY2dqemN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTIzNjMsImV4cCI6MjA5MDYyODM2M30.U4waGWzPx7zC0Z_ypukj5K7aXoK6pDf6SP-e6TcKJRc";
-const BUZZ_TIMEOUT = 4; 
+const BUZZ_TIMEOUT = 4; // seconds to confirm after buzz
 
 // ═══════════════════════════════════════════════════
-// DATABASE PAROLE COMPLETO (VECCHIE + NUOVE)
+// PAROLE SINGOLE — ~2000 parole italiane
 // ═══════════════════════════════════════════════════
-const DATABASE_BASE = [
-  // ANIMALI (200+)
+const PAROLE_SINGOLE = [
+  // ANIMALI
   "Aquila","Balena","Cammello","Delfino","Elefante","Falco","Gazzella","Ippopotamo",
   "Leone","Lupo","Medusa","Pantera","Rinoceronte","Serpente","Tigre","Volpe","Zebra",
   "Giraffa","Coccodrillo","Pinguino","Koala","Orso","Squalo","Tartaruga","Fenicottero",
@@ -37,8 +37,7 @@ const DATABASE_BASE = [
   "Chinchilla","Gerbillo","Alpaca","Vigogna","Lama","Dromedario","Fennec","Okapi",
   "Quetzal","Kiwi","Emù","Nandù","Casuario","Marabù","Ibis","Mignattaio",
   "Muflone","Visone","Opossum","Gnu","Kudu","Alcione","Gruccione",
-
-  // CIBO E CUCINA (250+)
+  // CIBO E CUCINA
   "Lasagna","Risotto","Focaccia","Bruschetta","Polenta","Carbonara","Parmigiana",
   "Mozzarella","Prosciutto","Salame","Mortadella","Gorgonzola","Mascarpone","Ricotta",
   "Taleggio","Pecorino","Piadina","Grissino","Ciabatta","Pandoro","Panettone","Cannolo",
@@ -64,8 +63,7 @@ const DATABASE_BASE = [
   "Nebbiolo","Sangiovese","Barbera","Primitivo","Vermentino","Trebbiano",
   "Moscato","Passito","Spumante","Birra","Sidro","Amaro","Vermouth",
   "Ragù","Besciamella","Sugo","Soffritto","Battuto","Fumetto",
-
-  // CORPO UMANO E MEDICINA (150+)
+  // CORPO UMANO E MEDICINA
   "Cervello","Polmone","Stomaco","Fegato","Ginocchio","Caviglia","Gomito","Spalla",
   "Sopracciglio","Mento","Guancia","Fronte","Tempia","Nuca","Vertebra","Costola",
   "Muscolo","Tendine","Arteria","Capillare","Femore","Tibia","Perone","Omero",
@@ -79,8 +77,7 @@ const DATABASE_BASE = [
   "Ematoma","Cicatrice","Sutura","Anestesia","Protesi","Trapianto","Biopsia",
   "Epidemia","Pandemia","Contagio","Immunità","Metabolismo","Ormone","Enzima",
   "Proteina","Vitamina","Caloria","Colesterolo","Glicemia","Pressione","Pulsazione",
-
-  // OGGETTI QUOTIDIANI (200+)
+  // OGGETTI QUOTIDIANI
   "Ombrello","Portafoglio","Chiave","Orologio","Occhiali","Telefono","Zaino","Valigia",
   "Bottiglia","Bicchiere","Forchetta","Coltello","Cucchiaio","Piatto","Pentola","Padella",
   "Sedia","Tavolo","Divano","Letto","Armadio","Cassetto","Specchio","Lampada","Candela",
@@ -102,8 +99,7 @@ const DATABASE_BASE = [
   "Comodino","Cassettiera","Credenza","Scaffale","Libreria",
   "Scrivania","Poltrona","Sgabello","Amaca","Dondolo",
   "Timbro","Cucitrice","Graffetta","Elastico","Colla",
-
-  // PROFESSIONI (120+)
+  // PROFESSIONI
   "Architetto","Avvocato","Barbiere","Calzolaio","Dentista","Farmacista","Giornalista",
   "Idraulico","Ingegnere","Libraio","Medico","Notaio","Oculista","Pediatra","Regista",
   "Sarto","Veterinario","Chirurgo","Pompiere","Poliziotto","Astronauta","Pilota",
@@ -122,8 +118,7 @@ const DATABASE_BASE = [
   "Minatore","Boscaiolo","Guida","Interprete","Traduttore",
   "Editore","Bibliotecario","Archivista","Speleologo","Vulcanologo",
   "Paleontologo","Antropologo","Cartografo","Topografo",
-
-  // GEOGRAFIA E NATURA (200+)
+  // GEOGRAFIA E NATURA
   "Montagna","Collina","Pianura","Valle","Deserto","Foresta","Giungla","Prateria",
   "Vulcano","Ghiacciaio","Cascata","Sorgente","Torrente","Fiume","Lago","Stagno",
   "Palude","Oceano","Scogliera","Spiaggia","Penisola","Arcipelago","Continente",
@@ -147,8 +142,7 @@ const DATABASE_BASE = [
   "Burrasca","Tifone","Blizzard","Acquazzone","Diluvio","Pioggia","Nevicata",
   "Aurora","Eclissi","Foschia","Banchisa","Iceberg","Permafrost",
   "Calanchi","Frana","Smottamento","Morena",
-
-  // SPORT (150+)
+  // SPORT
   "Pallone","Canestro","Racchetta","Bicicletta","Skateboard","Paracadute","Trampolino",
   "Maratona","Staffetta","Scherma","Pugilato","Pallavolo","Pallanuoto","Tuffo",
   "Slalom","Snowboard","Pattinaggio","Vela","Canottaggio","Equitazione","Arrampicata",
@@ -165,9 +159,8 @@ const DATABASE_BASE = [
   "Canoa","Regata","Bolina","Virata",
   "Scacchi","Dama","Backgammon","Biliardo","Freccette","Bocce",
   "Cricket","Rugby","Baseball","Hockey","Polo","Badminton",
-  "Deltaplano","Parapendio","Pattini","Snowboard",
-
-  // MUSICA E ARTE (150+)
+  "Deltaplano","Parapendio","Pattini",
+  // MUSICA E ARTE
   "Pianoforte","Violino","Chitarra","Batteria","Tromba","Flauto","Sassofono","Fisarmonica",
   "Clarinetto","Violoncello","Contrabbasso","Arpa","Tamburo","Xilofono","Mandolino",
   "Melodia","Sinfonia","Concerto","Orchestra","Spartito","Direttore","Palcoscenico",
@@ -184,8 +177,7 @@ const DATABASE_BASE = [
   "Bassorilievo","Altorilievo","Installazione","Performance",
   "Cavalletto","Tavolozza","Pennello","Tela","Carboncino","Pastello",
   "Prospettiva","Chiaroscuro","Velatura","Patina",
-
-  // SCIENZA E TECNOLOGIA (200+)
+  // SCIENZA E TECNOLOGIA
   "Telescopio","Microscopio","Laboratorio","Provetta","Molecola","Atomo","Elettrone",
   "Protone","Galassia","Asteroide","Cometa","Satellite","Orbita","Gravità","Magnetismo",
   "Algoritmo","Database","Processore","Tastiera","Stampante","Antenna",
@@ -207,8 +199,7 @@ const DATABASE_BASE = [
   "Oro","Platino","Titanio","Tungsteno","Mercurio","Piombo","Alluminio",
   "Cromo","Nichel","Cobalto","Manganese","Magnesio","Calcio","Sodio","Potassio",
   "Polimero","Grafene","Neon","Argon","Elio",
-
-  // ABBIGLIAMENTO (120+)
+  // ABBIGLIAMENTO
   "Cappello","Sciarpa","Guanto","Cintura","Cravatta","Giacca","Cappotto","Impermeabile",
   "Maglione","Camicia","Pantaloni","Gonna","Vestito","Costume","Pigiama","Accappatoio",
   "Stivale","Sandalo","Pantofola","Ciabatta","Calzino","Bottone","Cerniera","Bretella",
@@ -222,8 +213,7 @@ const DATABASE_BASE = [
   "Velluto","Seta","Raso","Organza","Tulle","Pizzo","Merletto",
   "Taffetà","Chiffon","Tweed","Denim","Lino","Cotone",
   "Cashmere","Mohair","Pelle","Camoscio","Vernice",
-
-  // CASA E ARCHITETTURA (150+)
+  // CASA E ARCHITETTURA
   "Balcone","Terrazza","Soffitta","Cantina","Garage","Camino","Comignolo","Grondaia",
   "Persiana","Ringhiera","Pavimento","Soffitto","Colonna","Arco","Cupola","Campanile",
   "Cattedrale","Fortezza","Castello","Torre","Ponte","Fontana","Acquedotto","Faro",
@@ -242,8 +232,7 @@ const DATABASE_BASE = [
   "Obelisco","Piramide","Anfiteatro","Acquario","Planetario","Osservatorio",
   "Pinacoteca","Biblioteca","Municipio","Tribunale",
   "Caserma","Ospedale","Farmacia","Mercato","Bottega",
-
-  // TRASPORTI (100+)
+  // TRASPORTI
   "Locomotiva","Mongolfiera","Dirigibile","Sottomarino","Transatlantico",
   "Motocicletta","Fuoristrada","Ambulanza","Elicottero","Funivia","Teleferica",
   "Gondola","Traghetto","Catamarano","Monopattino","Automobile",
@@ -254,8 +243,7 @@ const DATABASE_BASE = [
   "Razzo","Sonda","Metropolitana","Filobus","Autobus","Pullman",
   "Seggiovia","Telecabina","Funicolare","Slitta","Canoa","Piroga",
   "Gommone","Zattera","Motoslitta","Motorino","Scooter","Vespa",
-
-  // EMOZIONI E ASTRATTO (120+)
+  // EMOZIONI E ASTRATTO
   "Coraggio","Paura","Felicità","Tristezza","Rabbia","Sorpresa","Nostalgia","Speranza",
   "Orgoglio","Vergogna","Gelosia","Invidia","Gratitudine","Pazienza","Saggezza",
   "Intelligenza","Fantasia","Creatività","Curiosità","Avventura","Mistero","Segreto",
@@ -270,32 +258,27 @@ const DATABASE_BASE = [
   "Meraviglia","Incanto","Fascino","Carisma","Attrazione",
   "Tenerezza","Dolcezza","Amarezza","Rimpianto",
   "Desiderio","Passione","Entusiasmo","Apatia","Noia",
-
   // DANZA E BALLI
   "Valzer","Tango","Samba","Rumba","Salsa","Merengue","Bachata","Flamenco",
   "Tarantella","Polka","Mazurka","Minuetto","Bolero","Fandango",
   "Charleston","Foxtrot","Quickstep",
-
   // TEMPO E CALENDARIO
   "Calendario","Anniversario","Compleanno","Carnevale","Capodanno","Epifania",
   "Quaresima","Ferragosto","Vendemmia","Semestre","Trimestre","Biennio","Decennio",
   "Millennio","Equinozio","Solstizio","Crepuscolo","Mezzanotte","Mezzogiorno",
   "Lustro","Secolo","Epoca","Istante","Attimo","Momento","Intervallo",
-
   // MITOLOGIA
   "Drago","Fenice","Unicorno","Centauro","Minotauro","Sirena","Ciclope","Grifone",
   "Chimera","Sfinge","Pegaso","Idra","Titano","Ninfa","Oracolo","Labirinto",
   "Troll","Elfo","Gnomo","Goblin","Orco","Strega","Mago","Folletto",
   "Fata","Vampiro","Licantropo","Fantasma","Spettro","Demone","Angelo",
   "Basilisco","Cerbero","Kraken","Leviatano","Golem","Banshee",
-
   // GIOCHI
   "Scacchiera","Dama","Domino","Roulette","Puzzle","Caleidoscopio",
   "Marionetta","Burattino","Giocoliere","Acrobata","Trapezista","Prestigiatore",
   "Altalena","Scivolo","Trottola","Aquilone","Boomerang",
   "Rompicapo","Solitario","Tangram","Origami",
   "Flipper","Jukebox","Karaoke","Tombola",
-
   // MATERIALI
   "Diamante","Smeraldo","Rubino","Zaffiro","Ambra","Corallo","Alabastro",
   "Porcellana","Terracotta","Pergamena","Papiro","Turchese","Topazio","Ametista",
@@ -303,7 +286,6 @@ const DATABASE_BASE = [
   "Bronzo","Ottone","Peltro","Ghisa","Acciaio","Cristallo",
   "Gomma","Ebano","Palissandro","Mogano","Teak","Sughero",
   "Canapa","Cotto","Gres","Grafite","Ardesia",
-
   // LETTERATURA
   "Romanzo","Racconto","Novella","Fiaba","Favola","Leggenda","Mito","Epopea",
   "Poesia","Sonetto","Ode","Elegia","Epigramma","Filastrocca",
@@ -313,7 +295,6 @@ const DATABASE_BASE = [
   "Trama","Protagonista","Antagonista","Narratore",
   "Dialogo","Monologo","Aforisma","Proverbio",
   "Vocabolario","Dizionario","Enciclopedia","Glossario","Almanacco",
-
   // ECONOMIA
   "Bilancio","Fattura","Ricevuta","Scontrino","Bolletta","Mutuo","Prestito",
   "Interesse","Dividendo","Azione","Obbligazione","Rendita","Patrimonio","Capitale",
@@ -321,21 +302,18 @@ const DATABASE_BASE = [
   "Monopolio","Concorrenza","Quotazione","Fallimento",
   "Dogana","Dazio","Sussidio","Incentivo","Detrazione",
   "Imposta","Aliquota","Catasto","Ipoteca","Garanzia",
-
   // DIRITTO
   "Costituzione","Parlamento","Senato","Decreto","Ordinanza","Statuto",
   "Regolamento","Articolo","Emendamento","Referendum",
   "Amnistia","Indulto","Arresto","Perquisizione","Sequestro","Confisca",
   "Processo","Udienza","Sentenza","Appello","Ricorso","Prescrizione",
   "Testimone","Imputato","Difensore","Giuria",
-
   // COMUNICAZIONE
   "Trasmissione","Antenna","Canale","Palinsesto","Sigla",
   "Telegiornale","Documentario","Reportage","Intervista","Dibattito","Sondaggio",
   "Redazione","Corrispondente","Inviato","Cronista",
   "Titolo","Sottotitolo","Didascalia","Corsivo","Grassetto",
   "Impaginazione","Tiratura","Edizione","Supplemento","Inserto",
-
   // EXTRA VARIE
   "Bussola","Lanterna","Fischietto","Barometro","Abaco",
   "Fionda","Balestra","Scudo","Armatura","Elmo","Stemma","Blasone",
@@ -357,16 +335,13 @@ const DATABASE_BASE = [
   "Monastero","Convento","Oratorio",
   "Bivio","Incrocio","Svincolo","Cavalcavia","Sottopassaggio","Galleria",
   "Tunnel","Viadotto","Casello","Semaforo","Segnale"
-  
-  // --- I NUOVI VERBI ALL'INFINITO (DATABASE ESPANSO) ---
-  "Abbandonare","Abbagliare","Abbinare","Abitare","Abituare","Accadere","Accarezzare","Accendere","Accettare","Accogliere","Accompagnare","Acconsentire","Accorgersi","Accumulare","Accusare","Acquistare","Adattare","Addolcire","Addormentare","Adempiere","Aderire","Adoperare","Adorare","Adornare","Adottare","Affacciarsi","Affamare","Affascinare","Affermare","Afferrare","Affidare","Affilare","Affittare","Affliggere","Affogare","Affondare","Affrontare","Agevolare","Agganciare","Aggiornare","Aggirare","Aggiungere","Aggiustare","Aggredire","Aggregare","Agitare","Aiutare","Alimentare","Allargare","Allarmare","Allenare","Allevare","Allontanare","Alludere","Alzare","Amare","Ammettere","Amministrare","Ammirare","Ammonire","Ammorbidire","Analizzare","Andare","Annotare","Annunciare","Annullare","Anticipare","Apparire","Appartenere","Appassionare","Appellare","Appendere","Applaudire","Applicare","Appoggiare","Apprezzare","Approfondire","Approvare","Aprire","Arredare","Arrestare","Arrivare","Arrossire","Arrostire","Ascoltare","Aspettare","Aspirare","Assaggiare","Assalire","Assecondare","Assicurare","Assistere","Associare","Assolvere","Assorbire","Assumere","Attaccare","Attendere","Atterrare","Attingere","Attirare","Attivare","Attraversare","Attribuire","Aumentare","Avanzare","Avere","Avvertire","Avvicinare","Avvolgere","Azzardare","Baciare","Bagnare","Ballare","Barattare","Bastare","Battere","Beffare","Benedire","Bere","Biasimare","Bighellonare","Bloccare","Bollire","Brillare","Bruciare","Brontolare","Buffare","Buttare","Cadere","Calare","Calcolare","Calmare","Calpestare","Cambiare","Camminare","Cancellare","Cantare","Capire","Capovolgere","Caricare","Carpire","Cavalcare","Cedere","Celebrare","Cercare","Certificare","Cestinare","Chiamare","Chiedere","Chiudere","Circondare","Citare","Classificare","Cucinare","Cucire","Curare","Custodire","Danzare","Dare","Decidere","Decifrare","Declinare","Decollare","Dedurre","Definire","Delegare","Deliberare","Deludere","Denunciare","Deporre","Descrivere","Desiderare","Destinare","Determinare","Dettare","Deviare","Dialogare","Dichiarare","Difendere","Diffondere","Digerire","Digitare","Dimenticare","Dimostrare","Dipingere","Dire","Dirigere","Discutere","Disegnare","Disfare","Disporre","Distruggere","Divertire","Dividere","Divulgare","Documentare","Domandare","Dormire","Dovere","Dubitare","Durare","Eccellere","Eclissare","Educare","Effettuare","Elaborare","Eleggere","Elevare","Eliminare","Elogiare","Emanare","Emergere","Emettere","Emozionare","Entrare","Esagerare","Esaltare","Esaminare","Esasperare","Escludere","Eseguire","Esercitare","Esigere","Esistere","Esitare","Espandere","Esperire","Esplodere","Esplorare","Esporre","Esprimere","Essere","Estrarre","Evaporare","Evidenziare","Evitare","Evocare","Fabbricare","Fallire","Falsificare","Faticare","Favorire","Fermare","Festeggiare","Fidarsi","Figurare","Filtrare","Finire","Fissare","Fluttuare","Fondare","Formare","Forzare","Fotografare","Frenare","Frequentare","Friggere","Fuggire","Fumare","Funzionare","Garantire","Gareggiare","Gattonare","Gelare","Generare","Gestire","Gettare","Giocare","Girare","Giudicare","Giungere","Giurare","Godere","Governare","Graffiare","Gratificare","Gridare","Guadagnare","Guardare","Guarire","Guidare","Gustare","Illudere","Illuminare","Immaginare","Imparare","Impedire","Impiegare","Imporre","Imprimere","Inaugurare","Incanalare","Incantare","Incapricciarsi","Incedere","Incentivare","Inchiudere","Inciampare","Incidere","Incoraggiare","Incrementare","Incuriosire","Indicare","Indovinare","Indurre","Infilare","Infliggere","Informare","Ingannare","Ingrandire","Iniziare","Innaffiare","Innamorarsi","Innalzare","Innestare","Inoltrare","Inquadrare","Inquietare","Inseguire","Inserire","Insegnare","Insistere","Ispirare","Installare","Intuire","Inveire","Inventare","Invertire","Investire","Inviare","Invitare","Invocare","Ipotizzare","Irrorare","Iscriversi","Istruire","Lanciare","Lasciare","Lavorare","Legare","Leggere","Lievitare","Limitare","Litigare","Lodare","Lottare","Luccicare","Lucidare","Lusingare","Macinare","Mandare","Mangiare","Manifestare","Mantenere","Maturare","Mediare","Meditare","Menzionare","Meritare","Mescolare","Mettere","Migliorare","Minacciare","Misurare","Modificare","Mordere","Morire","Mostrare","Muovere","Mutilare","Narrare","Nascere","Nascondere","Navigare","Negare","Negoziare","Nominare","Notare","Nuotare","Nutrire","Obbedire","Obiettare","Obbligare","Occupare","Odiare","Offrire","Oltrepassare","Omaggiare","Ommettere","Onorare","Operare","Opinare","Opporsi","Ordinare","Organizzare","Orientare","Ornare","Osservare","Ottenere","Ottimizzare","Ovviare","Pagare","Paragonare","Parare","Parlare","Partecipare","Partire","Passare","Pattinare","Peculiarizzare","Pedalare","Penare","Pensare","Percepire","Perdere","Perdonare","Perfezionare","Perforare","Permanere","Permettere","Perseguire","Persistere","Personalizzare","Persuadere","Pescare","Piacere","Piangere","Pianificare","Piazzare","Picchiettare","Piegare","Piovere","Pitturare","Pizzicare","Placare","Pianificare","Ponderare","Porre","Portare","Possedere","Posticipare","Potere","Pranzare","Praticare","Precedere","Precipitare","Precisare","Predire","Preferire","Pregare","Prelevare","Premere","Prenotare","Preoccuparsi","Preparare","Presentare","Preservare","Prestare","Presumere","Pretendere","Prevalere","Prevedere","Prevenire","Privare","Procedere","Proclamare","Procurare","Produrre","Progettare","Programmare","Progredire","Proibire","Prolungare","Promettere","Promuovere","Pronunciare","Proporre","Prorogare","Proseguire","Provare","Provocare","Provvedere","Pubblicare","Pulire","Pungere","Punire","Puntare","Puntualizzare","Qualificare","Quagliare","Questionare","Quietare","Quotare","Raccogliere","Raccomandare","Raccontare","Raddoppiare","Rafforzare","Raggiungere","Ragionare","Rallegrarsi","Rallentare","Rappresentare","Rassicurare","Reagire","Realizzare","Recuperare","Redigere","Regalare","Registrare","Regnare","Relazionare","Remare","Rende","Resistere","Respirare","Restare","Restituire","Rialzare","Riassumere","Ribadire","Ricamare","Ricercare","Ricevere","Richiedere","Riciclare","Ricordare","Riconoscere","Ricostruire","Ridurre","Riflettere","Rifiutare","Rigenerare","Riguardare","Rilasciare","Rilevare","Rimanere","Rimediare","Rimettere","Rimodernare","Rimuovere","Rinascere","Rincontrare","Rinfrescare","Ringraziare","Rinnovare","Rinunciare","Riparare","Ripartire","Ripetere","Riporre","Riportare","Riposare","Ripristinare","Riprodurre","Ripulire","Rischiare","Risolvere","Risparmiare","Rispettare","Rispondere","Ristorare","Risultare","Ritardare","Ritenere","Ritirare","Ritornare","Ritrovare","Riuscire","Rivelare","Rivedere","Rivivere","Rivolgere","Rovinare","Rubare","Ruminare","Ruotare","Ruzzolare","Sabbiare","Sacrificare","Salire","Saltare","Salutare","Salvare","Sanare","Sapere","Sbagliare","Sbalordire","Sbandare","Sbarcare","Sbarrare","Sbattere","Sbiancare","Sbloccare","Sbocciare","Sbottonare","Sbranare","Sbrigare","Scadere","Scagliare","Scalare","Scaldare","Scambiare","Scappare","Scaricare","Scartare","Scatenare","Scavare","Scegliere","Scendere","Scherzare","Schiacciare","Schierare","Schivare","Scivolare","Scollegare","Scommettere","Sconfortare","Scontare","Sconvolgere","Scoprire","Scorgere","Scorrere","Scovare","Scrivere","Scrutare","Scuotere","Scurire","Sdebitarsi","Sdoganare","Sdraiarsi","Sedare","Sedurre","Segnare","Seguire","Selezionare","Seminare","Sembrare","Sentire","Separare","Seppellire","Serbare","Serrare","Servire","Sfidare","Sfilare","Sfogliare","Sforzare","Sfruttare","Sfumare","Sganciare","Sgomberare","Sgridare","Sguinzagliare","Sigillare","Silenziare","Simulare","Sincronizzare","Sistemare","Slegare","Slittare","Sloggiare","Smaltire","Smarrire","Smentire","Smettere","Smontare","Smussare","Snellire","Snodare","Soffiare","Soffocare","Soffrire","Sognare","Solcare","Sollecitare","Sollevare","Sommare","Sondare","Sopportare","Sopravvivere","Sorgere","Sorprendere","Sorridere","Sorvegliare","Sospendere","Sospirare","Sostenere","Sostituire","Sottrarre","Spalancare","Spalmare","Sparare","Sparire","Spartire","Spaventare","Spaziare","Spedire","Spegnere","Sperare","Sperimentare","Spezzare","Spiegare","Spingere","Spirare","Splendere","Spogliare","Spostare","Sprecare","Spremere","Spuntare","Sputare","Stabilire","Staccare","Stancare","Stappare","Stare","Stendere","Sterzare","Stimare","Stimolare","Stipulare","Stirare","Stordire","Stravolgere","Strepitare","Stringere","Strizzare","Studiare","Stupire","Suonare","Superare","Supporre","Sussurrare","Svalutare","Svegliare","Svelare","Sventolare","Sviluppare","Svolgere","Svuotare","Tacere","Tagliare","Tardare","Tatuare","Teletrasportare","Temere","Temperare","Tendere","Tenere","Tentare","Terminare","Terzare","Testimoniare","Tifare","Tingere","Tirare","Toccare","Togliere","Tollerare","Tornare","Tostare","Tramandare","Tramite","Tranciare","Tranquillizzare","Trarre","Trascendere","Trascinare","Trascrivere","Trasferire","Trasformare","Trasmettere","Trasportare","Trattare","Trattenere","Traversare","Tremare","Trepidare","Trionfare","Trisciare","Tritare","Trovare","Tuffarsi","Tutelare","Uccidere","Udire","Uguagliare","Ululare","Umanizzare","Umettare","Umiliare","Unificare","Unire","Urgonare","Urlare","Urtare","Usare","Uscire","Usufruire","Usurpare","Utilizzare","Vacillare","Vagare","Vagliare","Valere","Validare","Valutare","Vandallizzare","Vantare","Varare","Variare","Vedere","Vegliare","Venerare","Venire","Ventilare","Verificare","Versare","Vestire","Viaggiare","Vietare","Vigilare","Vincere","Vincolare","Visitare","Vivere","Viziarsi","Vociare","Vogare","Volare","Volere","Volgere","Voltare","Vuotare","Zampillare","Zappare","Zittire","Zoppicare"
 ];
 
 // ═══════════════════════════════════════════════════
-// PAROLE COMPOSTE — 1000+ espressioni
+// PAROLE COMPOSTE — ~900 espressioni
 // ═══════════════════════════════════════════════════
 const PAROLE_COMPOSTE = [
-  // ═══ PERSONAGGI ITALIANI ═══
+  // PERSONAGGI ITALIANI
   "Sophia Loren","Alberto Sordi","Anna Magnani","Marcello Mastroianni",
   "Federico Fellini","Roberto Benigni","Monica Bellucci","Andrea Bocelli",
   "Luciano Pavarotti","Adriano Celentano","Raffaella Carrà","Gigi Proietti",
@@ -398,8 +373,7 @@ const PAROLE_COMPOSTE = [
   "Lorenzo de' Medici","Francesco d'Assisi","Padre Pio","Don Bosco",
   "Alex Zanardi","Federica Pellegrini","Alberto Tomba","Reinhold Messner",
   "Sara Simeoni","Deborah Compagnoni","Pietro Mennea",
-
-  // ═══ PERSONAGGI INTERNAZIONALI ═══
+  // PERSONAGGI INTERNAZIONALI
   "Albert Einstein","Isaac Newton","Charles Darwin","Marie Curie",
   "Nelson Mandela","Mahatma Gandhi","Martin Luther King","Madre Teresa",
   "Winston Churchill","John Kennedy","Barack Obama","Napoleone Bonaparte",
@@ -438,8 +412,7 @@ const PAROLE_COMPOSTE = [
   "Stephen Hawking","Alan Turing","Mark Zuckerberg","Jeff Bezos",
   "Lev Tolstoj","Fëdor Dostoevskij",
   "Antoine de Saint-Exupéry","Hans Christian Andersen",
-
-  // ═══ LUOGHI FAMOSI ═══
+  // LUOGHI FAMOSI
   "Torre Eiffel","Grande Muraglia","Machu Picchu","Taj Mahal",
   "Cristo Redentore","Torre di Pisa","Piazza San Marco","Ponte Vecchio",
   "Fontana di Trevi","Cappella Sistina","Piazza del Campo","Palazzo Ducale",
@@ -465,8 +438,7 @@ const PAROLE_COMPOSTE = [
   "Monte Fuji","Grande Barriera Corallina","Isola di Pasqua",
   "Chichén Itzá","Yellowstone","Galápagos","Serengeti","Kilimanjaro",
   "Victoria Falls","Monte Sinai","Capo di Buona Speranza",
-
-  // ═══ ISTITUZIONI ═══
+  // ISTITUZIONI
   "Nazioni Unite","Croce Rossa","Guardia di Finanza","Vigili del Fuoco",
   "Polizia Stradale","Guardia Costiera","Protezione Civile",
   "Corte Costituzionale","Corte dei Conti","Consiglio di Stato",
@@ -478,8 +450,7 @@ const PAROLE_COMPOSTE = [
   "Premio Nobel","Festival di Sanremo","Mostra del Cinema","Biennale di Venezia",
   "Scala di Milano","Palio di Siena","Carnevale di Venezia",
   "Accademia della Crusca",
-
-  // ═══ ESPRESSIONI E LOCUZIONI ═══
+  // ESPRESSIONI E LOCUZIONI
   "Carta d'identità","Colpo di scena","Punto di vista","Senso unico",
   "Acqua e sapone","Stella cadente","Luna piena","Mezza luna",
   "Alta velocità","Prima classe","Anno bisestile",
@@ -513,8 +484,7 @@ const PAROLE_COMPOSTE = [
   "Cuore d'oro","Cuore di pietra","Cuore infranto",
   "Sangue freddo","Sangue blu","Nervi saldi","Pugno di ferro",
   "Mano di velluto","Parola chiave","Scelta di campo",
-
-  // ═══ TITOLI DI FILM / OPERE (con articolo se parte del titolo) ═══
+  // TITOLI DI FILM / OPERE
   "Il Padrino","Il Gladiatore","Il Postino","Il Gattopardo",
   "La Dolce Vita","La Vita è Bella","La Grande Bellezza",
   "Il Sorpasso","Il Conformista","Il Decameron",
@@ -525,8 +495,7 @@ const PAROLE_COMPOSTE = [
   "Guerra e Pace","Delitto e Castigo","Orgoglio e Pregiudizio",
   "Romeo e Giulietta","Alice nel Paese delle Meraviglie",
   "Cappuccetto Rosso","Pinocchio","Hansel e Gretel",
-
-  // ═══ PIATTI E SPECIALITÀ ═══
+  // PIATTI E SPECIALITÀ
   "Panna cotta","Torta della nonna","Pasta al forno","Bistecca fiorentina",
   "Ossobuco alla milanese","Vitello tonnato","Bagna cauda","Pesto genovese",
   "Ragù bolognese","Cacio e pepe","Aglio e olio","Frutti di mare",
@@ -543,8 +512,7 @@ const PAROLE_COMPOSTE = [
   "Cassata siciliana","Pastiera napoletana","Babà al rum","Sfogliatella",
   "Torta caprese","Delizia al limone","Cannolo siciliano",
   "Crema pasticcera","Zabaione al marsala",
-
-  // ═══ FESTIVITÀ ═══
+  // FESTIVITÀ
   "San Valentino","San Patrizio","San Silvestro","San Gennaro",
   "Sant'Ambrogio","Festa della Repubblica","Festa della Liberazione",
   "Festa della Mamma","Festa del Papà","Albero di Natale",
@@ -554,8 +522,7 @@ const PAROLE_COMPOSTE = [
   "Giovedì grasso","Martedì grasso","Notte di San Lorenzo",
   "Primo maggio","Vigilia di Natale","Santo Stefano",
   "Lunedì dell'Angelo","San Nicola",
-
-  // ═══ MODI DI DIRE ═══
+  // MODI DI DIRE
   "Tallone d'Achille","Cavallo di Troia","Spada di Damocle",
   "Filo d'Arianna","Pomo della discordia","Nodo gordiano",
   "Torre d'avorio","Castello di carte","Scatola nera",
@@ -567,8 +534,7 @@ const PAROLE_COMPOSTE = [
   "Giardino dell'Eden","Arca di Noè","Sacro Graal",
   "Pietra filosofale","Macchina del tempo","Fontana della giovinezza",
   "Ferro di cavallo","Quadrifoglio","Gatto nero",
-
-  // ═══ SCIENZA E TECNICA ═══
+  // SCIENZA E TECNICA
   "Buco nero","Via Lattea","Sistema Solare","Big Bang",
   "Effetto serra","Energia rinnovabile","Pannello solare",
   "Pala eolica","Macchina a vapore","Motore a scoppio",
@@ -581,24 +547,21 @@ const PAROLE_COMPOSTE = [
   "Effetto farfalla","Effetto domino","Effetto placebo",
   "Selezione naturale","Codice genetico","Doppia elica",
   "Campo magnetico","Punto di ebollizione","Punto di fusione",
-
-  // ═══ COPPIE E PERSONAGGI FICTION ═══
+  // COPPIE E FICTION
   "Bonnie e Clyde","Tom e Jerry","Stanlio e Ollio",
   "Tristano e Isotta","Adamo ed Eva","Caino e Abele","Romolo e Remo",
   "Davide e Golia","Sansone e Dalila","Sherlock Holmes e Watson",
   "Asterix e Obelix","Thelma e Louise","Simon e Garfunkel",
   "Mario e Luigi","Qui Quo Qua","Tic e Tac",
   "Don Chisciotte","Robin Hood","Re Artù","Peter Pan",
-
-  // ═══ GIOCHI E INTRATTENIMENTO ═══
+  // GIOCHI
   "Gioco dell'oca","Mosca cieca","Guardie e ladri",
   "Caccia al tesoro","Ruba bandiera","Tiro alla fune",
   "Carte da gioco","Gioco di ruolo","Parole crociate",
   "Gioco di società","Gioco da tavolo","Gioco di carte",
   "Sette e mezzo","Scala quaranta","Testa o croce",
   "Uno due tre stella","Strega comanda colore",
-
-  // ═══ EXTRA VARIE ═══
+  // EXTRA VARIE
   "Vita quotidiana","Senso comune","Buon senso","Buona fede",
   "Mal di testa","Mal di stomaco","Mal di schiena","Mal di gola",
   "Mal di mare","Mal di montagna","Primo soccorso","Pronto soccorso",
@@ -632,308 +595,847 @@ const PAROLE_COMPOSTE = [
   "Terra di mezzo","Via di mezzo","Giusto mezzo",
   "Bella addormentata","Principe azzurro","Cavaliere errante",
   "Anima gemella","Alter ego","Braccio destro",
-  "Bersaglio mobile","Obiettivo sensibile","Zona calda","Zona rossa",
+  "Bersaglio mobile","Zona calda","Zona rossa",
   "Rosso fuoco","Bianco candido","Nero pece","Verde smeraldo",
   "Blu cobalto","Giallo ocra","Grigio perla","Rosa antico",
   "Oro zecchino","Argento vivo","Bronzo antico",
   "Alto mare","Basso profilo","Lungo termine","Breve termine",
   "Grande slam","Piccolo schermo","Vecchia scuola","Nuovo mondo",
-  "Vecchio continente","Nuovo testamento","Bella stagione","Brutta copia",
-  "Buona uscita","Cattivo gusto","Cattiva coscienza","Buona volontà",
+  "Vecchio continente","Bella stagione","Brutta copia",
+  "Buona uscita","Cattivo gusto","Buona volontà",
   "Santa pace","Sacro fuoco","Spirito libero","Animo gentile",
 ];
 
 // ═══════════════════════════════════════════════════
-// LOGICA SHUFFLE (MAZZO DI CARTE)
+// UTILITIES
 // ═══════════════════════════════════════════════════
-function shuffleArray(array) {
-  const newArr = [...array];
-  for (let i = newArr.length - 1; i > 0; i--) {
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return newArr;
+  return a;
+}
+
+function generateRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c = "";
+  for (let i = 0; i < 4; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
 }
 
 // ═══════════════════════════════════════════════════
-// COMPONENTE BUZZER (GIOCATORE)
+// SUPABASE REALTIME HOOK
 // ═══════════════════════════════════════════════════
-function PlayerBuzzer({ roomCode, onExit }) {
-  const [supabase, setSupabase] = useState(null);
-  const [status, setStatus] = useState("connecting");
-  const [feedback, setFeedback] = useState(null);
+function useSupabase() {
+  const clientRef = useRef(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    if (window._supabase) {
+      clientRef.current = window._supabase;
+      setLoaded(true);
+      return;
+    }
     const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-    script.async = true;
+    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
     script.onload = () => {
-      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      setSupabase(client);
-      
-      const channel = client.channel(`room_${roomCode.toUpperCase()}`)
-        .on("broadcast", { event: "result" }, ({ payload }) => {
-          setFeedback(payload.type);
-          setTimeout(() => setFeedback(null), 2000);
-        })
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") setStatus("ready");
-          else setStatus("error");
-        });
-
-      return () => client.removeChannel(channel);
+      try {
+        const c = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window._supabase = c;
+        clientRef.current = c;
+        setLoaded(true);
+      } catch (e) { console.error("Supabase init error:", e); }
     };
-    document.body.appendChild(script);
-  }, [roomCode]);
+    script.onerror = () => console.warn("Could not load Supabase (buzzer won't work, game still playable)");
+    document.head.appendChild(script);
+  }, []);
 
-  const handleBuzz = () => {
-    if (status !== "ready" || feedback) return;
-    if (navigator.vibrate) navigator.vibrate(100);
-    supabase.channel(`room_${roomCode.toUpperCase()}`).send({
-      type: "broadcast",
-      event: "buzz",
-      payload: { timestamp: Date.now() }
+  return { client: clientRef, loaded };
+}
+
+// ═══════════════════════════════════════════════════
+// FONT LOADER
+// ═══════════════════════════════════════════════════
+function useFontLoader() {
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.href = "https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+  }, []);
+}
+
+const F = "'Outfit', system-ui, -apple-system, sans-serif";
+
+// Dynamic font size for word display
+function getWordFontSize(word) {
+  if (!word) return 48;
+  const len = word.length;
+  if (len <= 7) return 56;
+  if (len <= 10) return 48;
+  if (len <= 14) return 40;
+  if (len <= 18) return 34;
+  if (len <= 24) return 28;
+  return 24;
+}
+
+// ═══════════════════════════════════════════════════
+// BUZZER VIEW (separate page for the player)
+// ═══════════════════════════════════════════════════
+function BuzzerView({ initialRoomCode }) {
+  useFontLoader();
+  const { client, loaded } = useSupabase();
+  const [roomCode, setRoomCode] = useState(initialRoomCode || "");
+  const [joined, setJoined] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [buzzed, setBuzzed] = useState(false);
+  const [result, setResult] = useState(null); // "correct"|"error"|"timeout"
+  const [canBuzz, setCanBuzz] = useState(false);
+  const channelRef = useRef(null);
+
+  // Join room
+  const joinRoom = useCallback(() => {
+    if (!client.current || !roomCode.trim()) return;
+    const code = roomCode.trim().toUpperCase();
+    const ch = client.current.channel(`room-${code}`, {
+      config: { broadcast: { self: false } }
     });
-  };
 
-  const bgColor = feedback === "correct" ? "#34C759" : feedback === "error" ? "#FF3B30" : "#121212";
+    ch.on("broadcast", { event: "word_active" }, ({ payload }) => {
+      setCanBuzz(payload.active);
+      if (payload.active) { setBuzzed(false); setResult(null); }
+    });
+
+    ch.on("broadcast", { event: "buzz_result" }, ({ payload }) => {
+      setResult(payload.result);
+      setBuzzed(false);
+      setTimeout(() => setResult(null), 2000);
+    });
+
+    ch.subscribe((status) => {
+      if (status === "SUBSCRIBED") { setConnected(true); setJoined(true); }
+    });
+
+    channelRef.current = ch;
+  }, [client, roomCode]);
+
+  // Send buzz
+  const sendBuzz = useCallback(() => {
+    if (!channelRef.current || buzzed || !canBuzz) return;
+    setBuzzed(true);
+    if (navigator.vibrate) navigator.vibrate(100);
+    channelRef.current.send({ type: "broadcast", event: "buzz", payload: {} });
+  }, [buzzed, canBuzz]);
+
+  // Not joined yet - show room code entry
+  if (!joined) {
+    return (
+      <div style={{ minHeight:"100vh", background:"#0a0e27", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32, userSelect:"none" }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>🔔</div>
+        <h1 style={{ fontSize:28, fontWeight:900, marginBottom:8 }}>Buzzer</h1>
+        <p style={{ color:"rgba(255,255,255,0.5)", fontSize:14, marginBottom:32, textAlign:"center" }}>
+          Inserisci il codice stanza mostrato sullo schermo principale
+        </p>
+        {!loaded && <p style={{ color:"#FF9500", fontSize:13, marginBottom:16 }}>Caricamento connessione...</p>}
+        <input
+          type="text"
+          value={roomCode}
+          onChange={e => setRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,4))}
+          placeholder="CODICE"
+          maxLength={4}
+          style={{
+            width:200, textAlign:"center", fontSize:40, fontWeight:900, fontFamily:F,
+            padding:"16px 20px", borderRadius:20, border:"2px solid rgba(255,255,255,0.2)",
+            background:"rgba(255,255,255,0.08)", color:"#fff", letterSpacing:12,
+            outline:"none"
+          }}
+        />
+        <button
+          onClick={joinRoom}
+          disabled={!loaded || roomCode.length < 4}
+          style={{
+            marginTop:24, padding:"18px 48px", borderRadius:16, border:"none",
+            background: loaded && roomCode.length === 4 ? "#4A90D9" : "rgba(255,255,255,0.1)",
+            color:"#fff", fontSize:20, fontWeight:900, cursor:"pointer", fontFamily:F,
+            opacity: loaded && roomCode.length === 4 ? 1 : 0.4
+          }}
+        >CONNETTI</button>
+      </div>
+    );
+  }
+
+  // Joined - show buzzer
+  const bgColor = result === "correct" ? "#1a4a2a" : result === "error" ? "#4a1a1a" : result === "timeout" ? "#4a3a1a" : buzzed ? "#1a2a4a" : "#0a0e27";
 
   return (
-    <div style={{
-      height: "100vh", width: "100vw", backgroundColor: bgColor,
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      transition: "background-color 0.3s"
-    }}>
-      <div style={{ position: "absolute", top: 20, left: 20, color: "#fff", opacity: 0.5 }}>
-        Stanza: {roomCode.toUpperCase()}
+    <div
+      onClick={(!buzzed && canBuzz && !result) ? sendBuzz : undefined}
+      style={{
+        minHeight:"100vh", background:bgColor, color:"#fff", fontFamily:F,
+        display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+        padding:32, userSelect:"none", WebkitUserSelect:"none",
+        WebkitTapHighlightColor:"transparent", WebkitTouchCallout:"none",
+        cursor: (!buzzed && canBuzz && !result) ? "pointer" : "default",
+        transition:"background 0.3s ease"
+      }}
+    >
+      {/* Status dot */}
+      <div style={{ position:"fixed", top:16, right:16, display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ width:10, height:10, borderRadius:"50%", background: connected ? "#34C759" : "#FF3B30" }} />
+        <span style={{ fontSize:12, color:"rgba(255,255,255,0.4)" }}>{roomCode}</span>
       </div>
-      <button onClick={onExit} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: "#fff", fontSize: 14 }}>ESCI</button>
-      
-      <button 
-        onClick={handleBuzz}
-        disabled={status !== "ready" || !!feedback}
-        style={{
-          width: "80vw", height: "80vw", borderRadius: "50%",
-          background: "radial-gradient(circle, #FF3B30 0%, #8B0000 100%)",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-          color: "#fff", fontSize: 32, fontWeight: 900,
-          border: "10px solid rgba(255,255,255,0.1)",
-          cursor: "pointer", WebkitTapHighlightColor: "transparent"
-        }}
-      >
-        {status === "connecting" ? "..." : "PREMI!"}
-      </button>
-      <div style={{ marginTop: 40, color: "#fff", fontWeight: 700 }}>
-        {status === "ready" ? "BUZZER ATTIVO" : "CONNESSIONE..."}
-      </div>
+
+      {result ? (
+        // Show result
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontSize:80 }}>{result === "correct" ? "✓" : "✗"}</div>
+          <div style={{ fontSize:32, fontWeight:900, marginTop:16, color: result === "correct" ? "#34C759" : "#FF3B30" }}>
+            {result === "correct" ? "CORRETTA!" : result === "timeout" ? "TEMPO SCADUTO!" : "SBAGLIATA!"}
+          </div>
+        </div>
+      ) : buzzed ? (
+        // Buzzed, waiting for result
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontSize:72, fontWeight:900, color:"#4A90D9", animation:"pulse 1s infinite" }}>BUZZ!</div>
+          <div style={{ fontSize:16, color:"rgba(255,255,255,0.4)", marginTop:16 }}>In attesa del conduttore...</div>
+        </div>
+      ) : canBuzz ? (
+        // Ready to buzz - entire screen is the button
+        <div style={{ textAlign:"center" }}>
+          <div style={{
+            width:200, height:200, borderRadius:"50%", margin:"0 auto 24px",
+            background:"radial-gradient(circle at 35% 35%, #FF4444, #CC0000 60%, #880000)",
+            boxShadow:"0 8px 40px rgba(255,0,0,0.5), inset 0 -6px 12px rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            border:"6px solid #660000"
+          }}>
+            <div style={{ fontSize:48, fontWeight:900, color:"#fff", textShadow:"0 2px 8px rgba(0,0,0,0.5)" }}>BUZZ</div>
+          </div>
+          <div style={{ fontSize:28, fontWeight:900, letterSpacing:4 }}>PREMI!</div>
+          <div style={{ fontSize:14, color:"rgba(255,255,255,0.3)", marginTop:12 }}>Tocca lo schermo per buzzare</div>
+        </div>
+      ) : (
+        // Waiting for word
+        <div style={{ textAlign:"center" }}>
+          <div style={{
+            width:160, height:160, borderRadius:"50%", margin:"0 auto 24px",
+            background:"radial-gradient(circle at 35% 35%, #666, #444 60%, #222)",
+            boxShadow:"inset 0 -4px 8px rgba(0,0,0,0.3)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            border:"6px solid #333", opacity:0.4
+          }}>
+            <div style={{ fontSize:36, fontWeight:900, color:"#999" }}>BUZZ</div>
+          </div>
+          <div style={{ fontSize:20, fontWeight:700, color:"rgba(255,255,255,0.3)" }}>In attesa della prossima parola...</div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.05); }
+        }
+      `}</style>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════
-// COMPONENTE GIOCO (CONDUTTORE)
+// MAIN GAME (conduttore)
 // ═══════════════════════════════════════════════════
-function IntesaVincente({ useRemoteBuzzer, roomCode, onExit }) {
+function MainGame() {
+  useFontLoader();
+  const { client, loaded: supabaseLoaded } = useSupabase();
+
+  // Game states
+  const [gameState, setGameState] = useState("setup");
+  const [timeLimit, setTimeLimit] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [score, setScore] = useState(0);
+  const [isRaddoppio, setIsRaddoppio] = useState(false);
+  const [currentWord, setCurrentWord] = useState(null);
+  const [lastWord, setLastWord] = useState(null);
+  const [lastResult, setLastResult] = useState(null);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [waitingForExtract, setWaitingForExtract] = useState(true);
+  const [history, setHistory] = useState([]);
   const [correctCount, setCorrectCount] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [isActive, setIsActive] = useState(false);
-  const [word, setWord] = useState("");
-  const [isDouble, setIsDouble] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [deck, setDeck] = useState(() => shuffleArray(DATABASE_BASE));
-  const [supabase, setSupabase] = useState(null);
-  const [buzzState, setBuzzState] = useState(null);
+  const [passiRimanenti, setPassiRimanenti] = useState(3);
 
-  useEffect(() => {
-    if (useRemoteBuzzer) {
-      const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-      script.async = true;
-      script.onload = () => {
-        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        setSupabase(client);
-        const channel = client.channel(`room_${roomCode.toUpperCase()}`)
-          .on("broadcast", { event: "buzz" }, () => {
-            if (isActive && !isPaused && !buzzState) handleBuzzEvent();
-          })
-          .subscribe();
-        return () => client.removeChannel(channel);
-      };
-      document.body.appendChild(script);
+  // Buzzer states
+  const [buzzerEnabled, setBuzzerEnabled] = useState(false);
+  const [roomCode, setRoomCode] = useState("");
+  const [buzzerConnected, setBuzzerConnected] = useState(false);
+  const [buzzed, setBuzzed] = useState(false);
+  const [buzzCountdown, setBuzzCountdown] = useState(0);
+
+  const singleQueueRef = useRef([]);
+  const composteQueueRef = useRef([]);
+  const timerRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const remainingAtStartRef = useRef(0);
+  const channelRef = useRef(null);
+  const buzzTimerRef = useRef(null);
+
+  const initQueues = useCallback(() => {
+    singleQueueRef.current = shuffle([...new Set(PAROLE_SINGOLE)]);
+    composteQueueRef.current = shuffle([...new Set(PAROLE_COMPOSTE)]);
+  }, []);
+
+  const getNextWord = useCallback(() => {
+    const queue = isRaddoppio ? composteQueueRef.current : singleQueueRef.current;
+    if (queue.length === 0) {
+      // Ricarica il sacco solo quando completamente esaurito
+      if (isRaddoppio) composteQueueRef.current = shuffle([...new Set(PAROLE_COMPOSTE)]);
+      else singleQueueRef.current = shuffle([...new Set(PAROLE_SINGOLE)]);
+      return (isRaddoppio ? composteQueueRef.current : singleQueueRef.current).pop();
     }
-  }, [useRemoteBuzzer, roomCode, isActive, isPaused, buzzState]);
+    return queue.pop();
+  }, [isRaddoppio]);
 
+  // Game timer
   useEffect(() => {
-    let interval = null;
-    if (isActive && timeLeft > 0 && !isPaused && !buzzState) {
-      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
+    if (timerRunning && timeLeft > 0) {
+      startTimeRef.current = Date.now();
+      remainingAtStartRef.current = timeLeft;
+      timerRef.current = setInterval(() => {
+        const elapsed = (Date.now() - startTimeRef.current) / 1000;
+        const newTime = Math.max(0, remainingAtStartRef.current - elapsed);
+        setTimeLeft(newTime);
+        if (newTime <= 0) {
+          clearInterval(timerRef.current);
+          setTimerRunning(false);
+          setGameState("gameover");
+        }
+      }, 50);
     }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft, isPaused, buzzState]);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timerRunning]);
 
+  // Buzz countdown timer
   useEffect(() => {
-    let t;
-    if (buzzState === "buzzed") {
-      t = setTimeout(() => handleResolution("error"), BUZZ_TIMEOUT * 1000);
+    if (buzzed && buzzCountdown > 0) {
+      buzzTimerRef.current = setInterval(() => {
+        setBuzzCountdown(p => {
+          if (p <= 0.1) {
+            clearInterval(buzzTimerRef.current);
+            // Auto-sbagliata on timeout
+            handleBuzzTimeout();
+            return 0;
+          }
+          return p - 0.1;
+        });
+      }, 100);
     }
-    return () => clearTimeout(t);
-  }, [buzzState]);
+    return () => { if (buzzTimerRef.current) clearInterval(buzzTimerRef.current); };
+  }, [buzzed]);
 
-  const handleBuzzEvent = () => {
-    setBuzzState("buzzed");
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-  };
+  // Setup Supabase channel
+  const setupChannel = useCallback((code) => {
+    if (!client.current) return;
+    if (channelRef.current) channelRef.current.unsubscribe();
 
-  const getNewWord = () => {
-    let currentDeck = [...deck];
-    if (currentDeck.length === 0) currentDeck = shuffleArray(DATABASE_BASE);
-    const nextWord = currentDeck.pop();
-    setDeck(currentDeck);
-    return nextWord;
-  };
+    const ch = client.current.channel(`room-${code}`, {
+      config: { broadcast: { self: false } }
+    });
 
+    ch.on("broadcast", { event: "buzz" }, () => {
+      // Only accept buzz if word is active and not already buzzed
+      setBuzzed(prev => {
+        if (prev) return prev; // already buzzed
+        setTimerRunning(false);
+        setBuzzCountdown(BUZZ_TIMEOUT);
+        if (navigator.vibrate) navigator.vibrate(200);
+        return true;
+      });
+    });
+
+    ch.subscribe((status) => {
+      if (status === "SUBSCRIBED") setBuzzerConnected(true);
+    });
+
+    channelRef.current = ch;
+  }, [client]);
+
+  // Notify buzzer about word state
+  const notifyBuzzer = useCallback((active) => {
+    if (channelRef.current && buzzerEnabled) {
+      channelRef.current.send({ type: "broadcast", event: "word_active", payload: { active } });
+    }
+  }, [buzzerEnabled]);
+
+  // Send buzz result to buzzer
+  const notifyBuzzResult = useCallback((result) => {
+    if (channelRef.current && buzzerEnabled) {
+      channelRef.current.send({ type: "broadcast", event: "buzz_result", payload: { result } });
+    }
+  }, [buzzerEnabled]);
+
+  const handleBuzzTimeout = useCallback(() => {
+    // Auto wrong answer on timeout
+    if (!currentWord) return;
+    const pts = isRaddoppio ? 2 : 1;
+    setScore(p => Math.max(0, p - pts));
+    setErrorCount(p => p + 1);
+    setHistory(p => [...p, { word: currentWord, correct: false, buzzTimeout: true }]);
+    setLastResult("error");
+    notifyBuzzResult("timeout");
+    setCurrentWord(null);
+    setWaitingForExtract(true);
+    setBuzzed(false);
+    setBuzzCountdown(0);
+  }, [currentWord, isRaddoppio, notifyBuzzResult]);
+
+  // Start game
   const startGame = () => {
+    initQueues();
+    if (buzzerEnabled && supabaseLoaded) {
+      const code = generateRoomCode();
+      setRoomCode(code);
+      setupChannel(code);
+    }
+    setTimeLeft(timeLimit);
+    setScore(0);
     setCorrectCount(0);
     setErrorCount(0);
-    setTimeLeft(60);
-    setWord(getNewWord());
-    setIsActive(true);
-    setIsPaused(false);
-    setBuzzState(null);
+    setPassiRimanenti(3);
+    setHistory([]);
+    setCurrentWord(null);
+    setLastWord(null);
+    setLastResult(null);
+    setWaitingForExtract(true);
+    setTimerRunning(false);
+    setIsRaddoppio(false);
+    setBuzzed(false);
+    setBuzzCountdown(0);
+    setGameState(buzzerEnabled ? "lobby" : "playing");
   };
 
-  const handleResolution = (type) => {
-    if (type === "correct") {
-      setCorrectCount(c => c + (isDouble ? 2 : 1));
-      if (supabase) supabase.channel(`room_${roomCode}`).send({ type:"broadcast", event:"result", payload:{type:"correct"} });
-      setWord(getNewWord());
-      setIsDouble(false);
-      setBuzzState(null);
-      setIsPaused(false);
-    } else if (type === "error") {
-      setErrorCount(e => e + 1);
-      setCorrectCount(c => Math.max(0, c - 1));
-      if (supabase) supabase.channel(`room_${roomCode}`).send({ type:"broadcast", event:"result", payload:{type:"error"} });
-      setWord(getNewWord());
-      setIsDouble(false);
-      setBuzzState(null);
-      setIsPaused(false);
-    } else if (type === "pass") {
-      setIsPaused(true);
-      setBuzzState(null);
-      setIsDouble(false);
+  // Start from lobby
+  const startFromLobby = () => {
+    setGameState("playing");
+  };
+
+  // Extract word
+  const extractWord = () => {
+    if (timeLeft <= 0 || !waitingForExtract) return;
+    const word = getNextWord();
+    setCurrentWord(word);
+    setLastWord(word);
+    setLastResult(null);
+    setWaitingForExtract(false);
+    setBuzzed(false);
+    setBuzzCountdown(0);
+    if (!buzzerEnabled) {
+      setTimerRunning(true);
+    } else {
+      setTimerRunning(true);
+      notifyBuzzer(true);
     }
   };
 
-  const handleNextWord = (double = false) => {
-    setWord(getNewWord());
-    setIsDouble(double);
-    setIsPaused(false);
-    setBuzzState(null);
-    if (!isActive) setIsActive(true);
+  // Handle correct
+  const handleCorrect = () => {
+    if (waitingForExtract || !currentWord) return;
+    if (buzzerEnabled && !buzzed) return; // must buzz first in buzzer mode
+    clearInterval(buzzTimerRef.current);
+    if (!buzzed) setTimerRunning(false); // already stopped if buzzed
+    const pts = isRaddoppio ? 2 : 1;
+    setScore(p => p + pts);
+    setCorrectCount(p => p + 1);
+    setHistory(p => [...p, { word: currentWord, correct: true }]);
+    setLastResult("correct");
+    notifyBuzzResult("correct");
+    notifyBuzzer(false);
+    setCurrentWord(null);
+    setWaitingForExtract(true);
+    setBuzzed(false);
+    setBuzzCountdown(0);
   };
 
-  const timerColor = buzzState ? "#FFA500" : timeLeft <= 10 ? "#FF3B30" : "#fff";
+  // Handle error
+  const handleError = () => {
+    if (waitingForExtract || !currentWord) return;
+    if (buzzerEnabled && !buzzed) return;
+    clearInterval(buzzTimerRef.current);
+    if (!buzzed) setTimerRunning(false);
+    const pts = isRaddoppio ? 2 : 1;
+    setScore(p => Math.max(0, p - pts));
+    setErrorCount(p => p + 1);
+    setHistory(p => [...p, { word: currentWord, correct: false }]);
+    setLastResult("error");
+    notifyBuzzResult("error");
+    notifyBuzzer(false);
+    setCurrentWord(null);
+    setWaitingForExtract(true);
+    setBuzzed(false);
+    setBuzzCountdown(0);
+  };
+
+  /// Handle passo — ferma il tempo, scala un passo, lascia la parola visibile
+  const handlePasso = () => {
+    if (waitingForExtract || !currentWord || passiRimanenti <= 0) return;
+    if (buzzed) return;
+    setTimerRunning(false);
+    setPassiRimanenti(p => p - 1);
+    setLastResult("passo");
+    setCurrentWord(null);
+    setWaitingForExtract(true);
+    if (buzzerEnabled) notifyBuzzer(false);
+  };
+
+  const toggleRaddoppio = () => {
+    if (!waitingForExtract) return;
+    if (!isRaddoppio && score < 2) return; // serve almeno 2 punti per attivare
+    setIsRaddoppio(p => !p);
+  };
+
+  const displayTime = Math.ceil(timeLeft);
+  const timerPercent = (timeLeft / timeLimit) * 100;
+  const timerColor = timeLeft <= 10 ? "#FF3B30" : timeLeft <= 20 ? "#FF9500" : "#34C759";
+  const buzzPercent = buzzed ? (buzzCountdown / BUZZ_TIMEOUT) * 100 : 0;
+
+  // Can press action buttons?
+  const canAct = buzzerEnabled ? (buzzed && !waitingForExtract) : !waitingForExtract;
+
+  // ─── SETUP ───
+  if (gameState === "setup") {
+    return (
+      <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0a0e27,#1a1040 40%,#0d1b3e)", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 20px", userSelect:"none", WebkitUserSelect:"none", WebkitTapHighlightColor:"transparent" }}>
+        <div style={{ textAlign:"center", marginBottom:32 }}>
+          <div style={{ fontSize:64, marginBottom:8 }}>⛓️</div>
+          <h1 style={{ fontSize:38, fontWeight:900, margin:0, letterSpacing:"-1px", background:"linear-gradient(135deg,#fff,#a0c4ff)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Intesa Vincente</h1>
+          <p style={{ fontSize:14, color:"rgba(255,255,255,0.4)", margin:"8px 0 0", letterSpacing:4, textTransform:"uppercase", fontWeight:600 }}>Reazione a Catena</p>
+        </div>
+
+        {/* Time setting */}
+        <div style={{ background:"rgba(255,255,255,0.06)", borderRadius:24, padding:"28px 28px", width:"100%", maxWidth:380, textAlign:"center", border:"1px solid rgba(255,255,255,0.08)", marginBottom:20 }}>
+          <p style={{ fontSize:13, letterSpacing:3, color:"rgba(255,255,255,0.45)", margin:"0 0 16px", fontWeight:700 }}>TEMPO (SECONDI)</p>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:28 }}>
+            <button onClick={() => setTimeLimit(p => Math.max(55, p - 5))} style={{ width:64, height:64, borderRadius:"50%", border:"2px solid rgba(255,255,255,0.2)", background:"rgba(255,255,255,0.08)", color:"#fff", fontSize:28, fontWeight:800, cursor:"pointer", fontFamily:F }}>−5</button>
+            <span style={{ fontSize:64, fontWeight:900, minWidth:90, textAlign:"center", fontVariantNumeric:"tabular-nums" }}>{timeLimit}</span>
+            <button onClick={() => setTimeLimit(p => Math.min(65, p + 5))} style={{ width:64, height:64, borderRadius:"50%", border:"2px solid rgba(255,255,255,0.2)", background:"rgba(255,255,255,0.08)", color:"#fff", fontSize:28, fontWeight:800, cursor:"pointer", fontFamily:F }}>+5</button>
+          </div>
+        </div>
+
+        {/* Buzzer toggle */}
+        <div
+          onClick={() => setBuzzerEnabled(p => !p)}
+          style={{
+            background: buzzerEnabled ? "rgba(74,144,217,0.15)" : "rgba(255,255,255,0.04)",
+            borderRadius:20, padding:"18px 24px", width:"100%", maxWidth:380,
+            border: buzzerEnabled ? "2px solid rgba(74,144,217,0.4)" : "1px solid rgba(255,255,255,0.08)",
+            marginBottom:24, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between",
+            transition:"all 0.2s"
+          }}
+        >
+          <div>
+            <div style={{ fontSize:16, fontWeight:700 }}>🔔 Buzzer remoto</div>
+            <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginTop:4 }}>Un giocatore risponde dal suo telefono</div>
+          </div>
+          <div style={{
+            width:52, height:30, borderRadius:15, padding:3,
+            background: buzzerEnabled ? "#4A90D9" : "rgba(255,255,255,0.15)",
+            transition:"background 0.2s", display:"flex", alignItems: "center",
+            justifyContent: buzzerEnabled ? "flex-end" : "flex-start"
+          }}>
+            <div style={{ width:24, height:24, borderRadius:"50%", background:"#fff", transition:"all 0.2s" }} />
+          </div>
+        </div>
+
+        <button onClick={startGame} style={{ width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none", background:"linear-gradient(135deg,#4A90D9,#357ABD)", color:"#fff", fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer", boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F }}>
+          {buzzerEnabled ? "CONFIGURA BUZZER" : "INIZIA IL GIOCO"}
+        </button>
+        <p style={{ marginTop:20, fontSize:13, color:"rgba(255,255,255,0.2)", textAlign:"center" }}>{PAROLE_SINGOLE.length} parole · {PAROLE_COMPOSTE.length} espressioni</p>
+      </div>
+    );
+  }
+
+  // ─── LOBBY (buzzer connection) ───
+  if (gameState === "lobby") {
+    const buzzerUrl = `${window.location.origin}${window.location.pathname}#buzzer?room=${roomCode}`;
+    return (
+      <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0a0e27,#1a1040 40%,#0d1b3e)", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 20px", userSelect:"none" }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>🔔</div>
+        <h2 style={{ fontSize:26, fontWeight:900, margin:"0 0 8px" }}>Connetti il Buzzer</h2>
+        <p style={{ color:"rgba(255,255,255,0.45)", fontSize:14, textAlign:"center", marginBottom:32, maxWidth:340 }}>
+          Sul telefono del giocatore, apri questo sito e clicca il link "BUZZER" oppure vai all'indirizzo e inserisci il codice:
+        </p>
+
+        {/* Room code display */}
+        <div style={{
+          background:"rgba(255,255,255,0.08)", borderRadius:24, padding:"24px 48px",
+          border:"2px solid rgba(74,144,217,0.3)", marginBottom:24, textAlign:"center"
+        }}>
+          <div style={{ fontSize:14, color:"rgba(255,255,255,0.4)", letterSpacing:3, marginBottom:8, fontWeight:600 }}>CODICE STANZA</div>
+          <div style={{ fontSize:56, fontWeight:900, letterSpacing:16, color:"#4A90D9" }}>{roomCode}</div>
+        </div>
+
+        {/* URL display */}
+        <div style={{
+          background:"rgba(255,255,255,0.04)", borderRadius:12, padding:"12px 16px",
+          fontSize:11, color:"rgba(255,255,255,0.35)", wordBreak:"break-all",
+          maxWidth:380, textAlign:"center", marginBottom:16
+        }}>
+          {buzzerUrl}
+        </div>
+
+        {/* QR Code */}
+        <div style={{ marginBottom:32, textAlign:"center" }}>
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(buzzerUrl)}`}
+            alt="QR Buzzer"
+            style={{ width:180, height:180, borderRadius:16, border:"3px solid rgba(255,255,255,0.15)" }}
+          />
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)", marginTop:8 }}>Inquadra con la fotocamera</div>
+        </div>
+
+        <button onClick={startFromLobby} style={{
+          width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none",
+          background:"linear-gradient(135deg,#4A90D9,#357ABD)", color:"#fff",
+          fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer",
+          boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F
+        }}>INIZIA IL GIOCO</button>
+
+        <p style={{ marginTop:16, fontSize:13, color:"rgba(255,255,255,0.25)" }}>
+          Puoi iniziare anche senza che il buzzer sia connesso
+        </p>
+      </div>
+    );
+  }
+
+  // ─── GAME OVER ───
+  if (gameState === "gameover") {
+    return (
+      <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0a0e27,#1a1040 40%,#0d1b3e)", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", padding:"36px 20px", overflow:"auto", userSelect:"none", WebkitUserSelect:"none" }}>
+        <div style={{ textAlign:"center", marginBottom:24 }}>
+          <div style={{ fontSize:52 }}>🏁</div>
+          <h2 style={{ fontSize:32, fontWeight:900, margin:"8px 0 0" }}>Tempo Scaduto!</h2>
+        </div>
+        <div style={{ textAlign:"center", background:"rgba(255,255,255,0.06)", borderRadius:28, padding:"28px 56px", border:"1px solid rgba(255,255,255,0.08)", marginBottom:20 }}>
+          <div style={{ fontSize:72, fontWeight:900, lineHeight:1, background:"linear-gradient(135deg,#FFD700,#FFA500)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>{score}</div>
+          <div style={{ fontSize:15, letterSpacing:4, color:"rgba(255,255,255,0.45)", fontWeight:700, marginTop:6 }}>PUNTI</div>
+        </div>
+        <div style={{ display:"flex", gap:12, width:"100%", maxWidth:380, marginBottom:20 }}>
+          {[{n:correctCount,l:"Corrette",c:"#34C759"},{n:errorCount,l:"Errori",c:"#FF3B30"},{n:correctCount+errorCount,l:"Totale",c:"#FF9500"}].map((s,i)=>(
+            <div key={i} style={{ flex:1, textAlign:"center", padding:"16px 8px", borderRadius:16, background:"rgba(255,255,255,0.04)", borderTop:`3px solid ${s.c}` }}>
+              <div style={{ fontSize:30, fontWeight:900, color:s.c, lineHeight:1 }}>{s.n}</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginTop:4 }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+        {history.length > 0 && (
+          <div style={{ width:"100%", maxWidth:380, marginBottom:24 }}>
+            <p style={{ fontSize:12, letterSpacing:3, color:"rgba(255,255,255,0.35)", margin:"0 0 12px", fontWeight:700 }}>RIEPILOGO PAROLE</p>
+            <div style={{ maxHeight:260, overflowY:"auto", display:"flex", flexDirection:"column", gap:5 }}>
+              {history.map((h,i)=>(
+                <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:"rgba(255,255,255,0.04)", borderRadius:12, borderLeft:`4px solid ${h.correct?"#34C759":"#FF3B30"}` }}>
+                  <span style={{ fontSize:15, fontWeight:600 }}>{h.word}{h.buzzTimeout ? " ⏱" : ""}</span>
+                  <span style={{ fontSize:16, fontWeight:800, padding:"2px 10px", borderRadius:8, background:h.correct?"rgba(52,199,89,0.2)":"rgba(255,59,48,0.2)", color:h.correct?"#34C759":"#FF3B30" }}>{h.correct?"✓":"✗"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <button onClick={()=>{setGameState("setup");setIsRaddoppio(false);setBuzzerEnabled(false);if(channelRef.current)channelRef.current.unsubscribe();}} style={{ width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none", background:"linear-gradient(135deg,#4A90D9,#357ABD)", color:"#fff", fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer", boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F }}>GIOCA ANCORA</button>
+      </div>
+    );
+  }
+
+  // ─── PLAYING ───
+  const showWord = lastWord !== null;
 
   return (
-    <div style={{ height: "100vh", backgroundColor: "#000", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", padding: 20 }}>
-      <div style={{ width: "100%", display: "flex", justifyContent: "space-between" }}>
-        <button onClick={onExit} style={{ background: "#333", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 8 }}>Esci</button>
-        <div style={{ fontWeight: 800 }}>{roomCode}</div>
+    <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0a0e27,#1a1040 40%,#0d1b3e)", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", userSelect:"none", WebkitUserSelect:"none", WebkitTapHighlightColor:"transparent", WebkitTouchCallout:"none" }}>
+
+      {/* Timer Bar */}
+      <div style={{ width:"100%", height:8, background:"rgba(255,255,255,0.08)", position:"sticky", top:0, zIndex:10 }}>
+        <div style={{ height:"100%", borderRadius:"0 4px 4px 0", width:`${timerPercent}%`, background:timerColor, transition:timerRunning?"width 0.1s linear":"none" }} />
       </div>
 
-      <div style={{ fontSize: 100, fontWeight: 900, margin: "10px 0" }}>{correctCount}</div>
+      {/* Buzz countdown bar (shows on top when buzzed) */}
+      {buzzed && (
+        <div style={{ width:"100%", height:6, background:"rgba(255,149,0,0.2)", position:"sticky", top:8, zIndex:10 }}>
+          <div style={{ height:"100%", background:"#FF9500", width:`${buzzPercent}%`, transition:"width 0.1s linear", borderRadius:"0 3px 3px 0" }} />
+        </div>
+      )}
 
-      <div style={{ width: 100, height: 100, borderRadius: "50%", border: `6px solid ${timerColor}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, color: timerColor }}>
-        {timeLeft}
+      {/* Top: Timer + Score + Buzzer indicator */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", width:"100%", maxWidth:420, padding:"12px 20px 6px" }}>
+        <div style={{ width:90, height:90, borderRadius:"50%", border:`4px solid ${buzzed ? "#FF9500" : timerColor}`, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.35)", color: buzzed ? "#FF9500" : timerColor, transition:"all 0.3s" }}>
+          {buzzed ? (
+            <>
+              <span style={{ fontSize:36, fontWeight:900, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>{Math.ceil(buzzCountdown)}</span>
+              <span style={{ fontSize:10, fontWeight:700, letterSpacing:1 }}>BUZZ</span>
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize:40, fontWeight:900, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>{displayTime}</span>
+              <span style={{ fontSize:11, fontWeight:700, opacity:0.7, letterSpacing:1, textTransform:"uppercase" }}>sec</span>
+            </>
+          )}
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", background:"rgba(255,255,255,0.06)", borderRadius:20, padding:"14px 30px", border:"1px solid rgba(255,255,255,0.08)" }}>
+            <span style={{ fontSize:44, fontWeight:900, lineHeight:1, fontVariantNumeric:"tabular-nums" }}>{score}</span>
+            <span style={{ fontSize:12, textTransform:"uppercase", letterSpacing:3, opacity:0.45, fontWeight:700, marginTop:4 }}>punti</span>
+          </div>
+          {buzzerEnabled && (
+            <div style={{ fontSize:10, color: buzzed ? "#FF9500" : "rgba(255,255,255,0.25)", marginTop:6, fontWeight:700, letterSpacing:1 }}>
+              {buzzed ? "🔔 BUZZATO!" : `🔔 ${roomCode}`}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.05)", borderRadius: 20, margin: "20px 0" }}>
-        {isActive ? (
-          <>
-            {isDouble && <div style={{ color: "#FFD700", fontWeight: 800 }}>RADDOPPIO</div>}
-            <div style={{ fontSize: 45, fontWeight: 900, textTransform: "uppercase" }}>{word}</div>
-            {isPaused && <div style={{ color: "#666", marginTop: 10 }}>PAUSA</div>}
-          </>
+      {/* Raddoppio */}
+      <button onClick={toggleRaddoppio} disabled={!waitingForExtract || (!isRaddoppio && score < 2)} style={{
+        margin:"6px 0 2px", padding:"10px 24px", borderRadius:28,
+        border:`2px solid ${isRaddoppio?"#FF9500":"rgba(255,255,255,0.12)"}`,
+        background:isRaddoppio?"rgba(255,149,0,0.2)":"rgba(255,255,255,0.05)",
+        color:isRaddoppio?"#FF9500":"rgba(255,255,255,0.4)",
+        fontSize:14, fontWeight:800, letterSpacing:1.5, cursor:"pointer",
+        textTransform:"uppercase", fontFamily:F,
+        opacity:waitingForExtract?1:0.35, transition:"all 0.2s"
+      }}>
+        {isRaddoppio ? "⚡ RADDOPPIO ×2" : "Raddoppio"}
+      </button>
+
+      {/* EXTRACT BUTTON */}
+      <div style={{ width:"100%", maxWidth:420, padding:"10px 20px 0" }}>
+        <button onClick={extractWord} disabled={!waitingForExtract || timeLeft <= 0} style={{
+          width:"100%", padding:"22px 16px", borderRadius:20,
+          border:waitingForExtract?"2.5px solid rgba(74,144,217,0.6)":"2px solid rgba(255,255,255,0.06)",
+          background:waitingForExtract?"linear-gradient(135deg,rgba(74,144,217,0.3),rgba(53,122,189,0.15))":"rgba(255,255,255,0.02)",
+          color:waitingForExtract?"#fff":"rgba(255,255,255,0.15)",
+          cursor:waitingForExtract?"pointer":"default",
+          display:"flex", alignItems:"center", justifyContent:"center", gap:14,
+          fontFamily:F, transition:"all 0.2s",
+          opacity:waitingForExtract?1:0.3,
+          boxShadow:waitingForExtract?"0 4px 20px rgba(74,144,217,0.2)":"none"
+        }}>
+          <span style={{ fontSize:30 }}>🎲</span>
+          <span style={{ fontSize:26, fontWeight:900, letterSpacing:5 }}>ESTRAI</span>
+        </button>
+      </div>
+
+      {/* WORD DISPLAY */}
+      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", width:"100%", maxWidth:420, padding:"10px 16px", minHeight:140 }}>
+        {showWord ? (
+          <div style={{
+            width:"100%", textAlign:"center", position:"relative", padding:"28px 16px",
+            background: buzzed ? "rgba(255,149,0,0.1)" : lastResult==="correct"?"rgba(52,199,89,0.1)" : lastResult==="error"?"rgba(255,59,48,0.1)" : "rgba(255,255,255,0.05)",
+            borderRadius:28,
+            border: buzzed ? "3px solid rgba(255,149,0,0.4)" : lastResult==="correct"?"3px solid rgba(52,199,89,0.35)" : lastResult==="error"?"3px solid rgba(255,59,48,0.35)" : "2px solid rgba(255,255,255,0.1)",
+            transition:"all 0.25s ease"
+          }}>
+            <div style={{
+              fontSize: getWordFontSize(lastWord),
+              fontWeight:900, lineHeight:1.15, textTransform:"uppercase", letterSpacing:2,
+              wordBreak:"break-word",
+              color: buzzed ? "#FF9500" : lastResult==="correct"?"#34C759" : lastResult==="error"?"#FF3B30" : "#fff",
+              textShadow: lastResult ? "none" : "0 2px 12px rgba(255,255,255,0.1)"
+            }}>{lastWord}</div>
+            {isRaddoppio && (
+              <div style={{ position:"absolute", top:-14, right:-6, background:"#FF9500", color:"#fff", fontSize:16, fontWeight:900, padding:"5px 14px", borderRadius:14, boxShadow:"0 2px 8px rgba(255,149,0,0.4)" }}>×2</div>
+            )}
+           {lastResult && !buzzed && (
+              <div style={{ marginTop:12, fontSize:16, fontWeight:800, letterSpacing:2, color:lastResult==="correct"?"#34C759":lastResult==="passo"?"#FFD700":"#FF3B30" }}>
+                {lastResult==="correct"?"✓ CORRETTA":lastResult==="passo"?"⏭ PASSO":"✗ SBAGLIATA"}
+              </div>
+            )}
+            {buzzed && (
+              <div style={{ marginTop:12, fontSize:16, fontWeight:800, letterSpacing:2, color:"#FF9500" }}>
+                🔔 BUZZATO! Conferma entro {Math.ceil(buzzCountdown)}s
+              </div>
+            )}
+          </div>
         ) : (
-          <button onClick={startGame} style={{ padding: "15px 30px", fontSize: 20, fontWeight: 800, borderRadius: 50 }}>INIZIA</button>
+          <div style={{ textAlign:"center", color:"rgba(255,255,255,0.12)", fontSize:18, fontWeight:600, letterSpacing:1 }}>
+            Premi ESTRAI per iniziare
+          </div>
         )}
       </div>
 
-      <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {buzzState || isPaused ? (
-          <>
-            <button onClick={() => handleResolution("correct")} style={{ gridColumn: "span 2", padding: 20, backgroundColor: "#34C759", border: "none", borderRadius: 12, color: "#fff", fontWeight: 800 }}>CORRETTA</button>
-            <button onClick={() => handleResolution("error")} style={{ padding: 20, backgroundColor: "#FF3B30", border: "none", borderRadius: 12, color: "#fff", fontWeight: 800 }}>SBAGLIATA</button>
-            <button onClick={() => handleResolution("pass")} style={{ padding: 20, backgroundColor: "#444", border: "none", borderRadius: 12, color: "#fff", fontWeight: 800 }}>PASSO</button>
-          </>
-        ) : (
-          <>
-            <button onClick={() => handleNextWord(false)} style={{ gridColumn: "span 2", padding: 20, backgroundColor: "#007AFF", border: "none", borderRadius: 12, color: "#fff", fontWeight: 800 }}>NUOVA PAROLA</button>
-            <button disabled={correctCount < 2} onClick={() => handleNextWord(true)} style={{ padding: 15, backgroundColor: correctCount >= 2 ? "#FFD700" : "#222", borderRadius: 12, fontWeight: 800, opacity: correctCount >= 2 ? 1 : 0.3 }}>RADDOPPIO</button>
-            <button onClick={() => setIsPaused(true)} style={{ padding: 15, backgroundColor: "#333", borderRadius: 12, color: "#fff", fontWeight: 800 }}>PASSO</button>
-          </>
-        )}
+      {/* PASSO button */}
+      <div style={{ width:"100%", maxWidth:420, padding:"0 20px 10px" }}>
+        <button onClick={handlePasso} disabled={waitingForExtract || passiRimanenti <= 0 || buzzed} style={{
+          width:"100%", padding:"12px", borderRadius:20, border:"none",
+          background: (waitingForExtract || passiRimanenti <= 0 || buzzed) ? "rgba(255,215,0,0.2)" : "#FFD700",
+          color: (waitingForExtract || passiRimanenti <= 0 || buzzed) ? "rgba(255,255,255,0.3)" : "#000",
+          fontSize:20, fontWeight:900, letterSpacing:2,
+          cursor: (waitingForExtract || passiRimanenti <= 0 || buzzed) ? "default" : "pointer",
+          fontFamily:F, textTransform:"uppercase",
+          display:"flex", justifyContent:"center", alignItems:"center", gap:8,
+          boxShadow: (waitingForExtract || passiRimanenti <= 0 || buzzed) ? "none" : "0 4px 15px rgba(255,215,0,0.3)",
+          transition:"all 0.2s"
+        }}>PASSO ({passiRimanenti})</button>
+      </div>
+
+      {/* ACTION BUTTONS */}
+      <div style={{ display:"flex", gap:16, width:"100%", maxWidth:420, padding:"0 20px 6px" }}>
+        <button onClick={handleCorrect} disabled={!canAct} style={{
+          flex:1, padding:"34px 12px", borderRadius:24, border:"none", cursor:"pointer",
+          background:"linear-gradient(160deg,#2ECC71,#27AE60)",
+          boxShadow: canAct ? "0 6px 28px rgba(46,204,113,0.35)" : "none",
+          opacity:canAct?1:0.2, transition:"opacity 0.15s",
+          display:"flex", flexDirection:"column", alignItems:"center", gap:4, fontFamily:F,
+          WebkitTapHighlightColor:"transparent"
+        }}>
+          <span style={{ fontSize:50, fontWeight:900, color:"#fff", lineHeight:1 }}>✓</span>
+          <span style={{ fontSize:18, fontWeight:900, color:"rgba(255,255,255,0.9)", letterSpacing:3 }}>CORRETTA</span>
+        </button>
+        <button onClick={handleError} disabled={!canAct} style={{
+          flex:1, padding:"34px 12px", borderRadius:24, border:"none", cursor:"pointer",
+          background:"linear-gradient(160deg,#E74C3C,#C0392B)",
+          boxShadow: canAct ? "0 6px 28px rgba(231,76,60,0.35)" : "none",
+          opacity:canAct?1:0.2, transition:"opacity 0.15s",
+          display:"flex", flexDirection:"column", alignItems:"center", gap:4, fontFamily:F,
+          WebkitTapHighlightColor:"transparent"
+        }}>
+          <span style={{ fontSize:50, fontWeight:900, color:"#fff", lineHeight:1 }}>✗</span>
+          <span style={{ fontSize:18, fontWeight:900, color:"rgba(255,255,255,0.9)", letterSpacing:3 }}>SBAGLIATA</span>
+        </button>
+      </div>
+
+      {/* Mini stats */}
+      <div style={{ display:"flex", gap:16, padding:"8px 0 28px", fontSize:16, fontWeight:800, letterSpacing:1 }}>
+        <span style={{ color:"#34C759" }}>✓ {correctCount}</span>
+        <span style={{ color:"rgba(255,255,255,0.2)" }}>|</span>
+        <span style={{ color:"#FF3B30" }}>✗ {errorCount}</span>
       </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════
-// APP PRINCIPALE
+// APP ROUTER
 // ═══════════════════════════════════════════════════
 export default function App() {
-  const [view, setView] = useState("home");
-  const [roomCode, setRoomCode] = useState(() => localStorage.getItem("intesa_room") || Math.random().toString(36).substring(2, 6).toUpperCase());
-  const [useRemote, setUseRemote] = useState(true);
+  const [view, setView] = useState(() => {
+    const h = window.location.hash;
+    return h.includes("buzzer") ? "buzzer" : "main";
+  });
 
-  useEffect(() => { localStorage.setItem("intesa_room", roomCode); }, [roomCode]);
+  // Listen for hash changes
+  useEffect(() => {
+    const onHash = () => {
+      setView(window.location.hash.includes("buzzer") ? "buzzer" : "main");
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
-  if (view === "home") {
-    return (
-      <div style={{ height:"100vh", backgroundColor:"#000", color:"#fff", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:30, textAlign:"center" }}>
-        <h1 style={{ fontSize:32, fontWeight:900, marginBottom:40 }}>INTESA VINCENTE</h1>
-        <button onClick={() => setView("conduttore_setup")} style={{ width:"100%", padding:20, borderRadius:15, border:"none", backgroundColor:"#fff", color:"#000", fontWeight:800, marginBottom:15 }}>FACCIAMO LE DOMANDE</button>
-        <button onClick={() => setView("giocatore_setup")} style={{ width:"100%", padding:20, borderRadius:15, border:"2px solid #fff", backgroundColor:"transparent", color:"#fff", fontWeight:800 }}>RISPONDO</button>
-      </div>
-    );
+  const roomFromUrl = useMemo(() => {
+    const m = window.location.hash.match(/room=([A-Z0-9]+)/i);
+    return m ? m[1].toUpperCase() : null;
+  }, [view]);
+
+  if (view === "buzzer") {
+    return <BuzzerView initialRoomCode={roomFromUrl} />;
   }
-
-  if (view === "giocatore_setup") {
-    return (
-      <div style={{ height:"100vh", backgroundColor:"#000", color:"#fff", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:30 }}>
-        <h2>Codice Stanza</h2>
-        <input value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} maxLength={4} style={{ width:120, padding:10, fontSize:24, textAlign:"center", margin:"20px 0" }} />
-        <button onClick={() => setView("giocatore_game")} style={{ width:"100%", padding:15, backgroundColor:"#34C759", border:"none", borderRadius:10, color:"#fff", fontWeight:800 }}>APRI IL BUZZER</button>
-        <button onClick={() => setView("home")} style={{ marginTop:20, color:"#666", border:"none", background:"none" }}>Indietro</button>
-      </div>
-    );
-  }
-
-  if (view === "giocatore_game") return <PlayerBuzzer roomCode={roomCode} onExit={() => setView("home")} />;
-
-  if (view === "conduttore_setup") {
-    return (
-      <div style={{ height:"100vh", backgroundColor:"#000", color:"#fff", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:30 }}>
-        <div style={{ backgroundColor:"#111", padding:20, borderRadius:15, textAlign:"center", width:"100%" }}>
-          <div style={{ fontSize:12, opacity:0.5 }}>CODICE STANZA</div>
-          <div style={{ fontSize:36, fontWeight:900, color:"#007AFF" }}>{roomCode}</div>
-          <button onClick={() => setRoomCode(Math.random().toString(36).substring(2, 6).toUpperCase())} style={{ background:"none", border:"none", color:"#444", fontSize:10 }}>CAMBIA</button>
-        </div>
-        <div style={{ marginTop:20, display:"flex", gap:10 }}>
-          <input type="checkbox" checked={useRemote} onChange={e => setUseRemote(e.target.checked)} />
-          <span>Usa Buzzer Remoto</span>
-        </div>
-        <button onClick={() => setView("conduttore_game")} style={{ width:"100%", marginTop:30, padding:20, backgroundColor:"#007AFF", border:"none", borderRadius:15, color:"#fff", fontWeight:800 }}>INIZIA GIOCO</button>
-        <button onClick={() => setView("giocatore_setup")} style={{ marginTop:20, color:"#007AFF", background:"none", border:"none", fontWeight:700 }}>Rispondi tu? Clicca qui</button>
-      </div>
-    );
-  }
-
-  if (view === "conduttore_game") return <IntesaVincente useRemoteBuzzer={useRemote} roomCode={roomCode} onExit={() => setView("home")} />;
-
-  return null;
+  return <MainGame />;
 }
