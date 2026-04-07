@@ -1425,9 +1425,9 @@ function MainGame() {
   const remainingAtStartRef = useRef(0);
   const channelRef = useRef(null);
   const buzzTimerRef = useRef(null);
-  const lastScoreRef = useRef(0);
-  const lastCorrectRef = useRef(0);
-  const lastErrorRef = useRef(0);
+  const scoreRef = useRef(0);
+  const correctCountRef = useRef(0);
+  const errorCountRef = useRef(0);
 
   const initQueues = useCallback(() => {
     singleQueueRef.current = shuffle([...new Set(PAROLE_SINGOLE)]);
@@ -1534,11 +1534,12 @@ function MainGame() {
     // Auto wrong answer on timeout
     if (!currentWord) return;
     const pts = isRaddoppio ? 2 : 1;
-    setScore(prev => { lastScoreRef.current = prev; return Math.max(0, prev - pts); });
-    setErrorCount(prev => { lastErrorRef.current = prev; return prev + 1; });
+    const snap = { score: scoreRef.current, correct: correctCountRef.current, error: errorCountRef.current };
+    setScore(p => Math.max(0, p - pts));
+    setErrorCount(p => p + 1);
     setHistory(p => [...p, { word: currentWord, correct: false, buzzTimeout: true }]);
     setLastResult("error");
-    setLastAction({ word: currentWord, correct: false });
+    setLastAction({ word: currentWord, wasCorrect: false, snap });
     notifyBuzzResult("timeout");
     notifyBuzzer(false);
     setCurrentWord(null);
@@ -1546,6 +1547,13 @@ function MainGame() {
     setBuzzed(false);
     setBuzzCountdown(0);
   }, [currentWord, isRaddoppio, notifyBuzzResult, notifyBuzzer]);
+
+  // Sync refs con stato corrente (per snapshot in handleRevisione)
+  useEffect(() => {
+    scoreRef.current = score;
+    correctCountRef.current = correctCount;
+    errorCountRef.current = errorCount;
+  });
 
   // Speech match logic
   useEffect(() => {
@@ -1557,11 +1565,12 @@ function MainGame() {
       // MATCH! Auto-corretta
       clearInterval(buzzTimerRef.current);
       const pts = isRaddoppio ? 2 : 1;
-      setScore(prev => { lastScoreRef.current = prev; return prev + pts; });
-      setCorrectCount(prev => { lastCorrectRef.current = prev; return prev + 1; });
+      const snap = { score: scoreRef.current, correct: correctCountRef.current, error: errorCountRef.current };
+      setScore(p => p + pts);
+      setCorrectCount(p => p + 1);
       setHistory(p => [...p, { word: currentWord, correct: true, speechMatch: true }]);
       setLastResult("correct");
-      setLastAction({ word: currentWord, correct: true });
+      setLastAction({ word: currentWord, wasCorrect: true, snap });
       notifyBuzzResult("correct");
       notifyBuzzer(false);
       setCurrentWord(null);
@@ -1635,11 +1644,12 @@ function MainGame() {
     clearInterval(buzzTimerRef.current);
     if (!buzzed) setTimerRunning(false); // already stopped if buzzed
     const pts = isRaddoppio ? 2 : 1;
-    setScore(prev => { lastScoreRef.current = prev; return prev + pts; });
-    setCorrectCount(prev => { lastCorrectRef.current = prev; return prev + 1; });
+    const snap = { score: scoreRef.current, correct: correctCountRef.current, error: errorCountRef.current };
+    setScore(p => p + pts);
+    setCorrectCount(p => p + 1);
     setHistory(p => [...p, { word: currentWord, correct: true }]);
     setLastResult("correct");
-    setLastAction({ word: currentWord, correct: true });
+    setLastAction({ word: currentWord, wasCorrect: true, snap });
     if (!inRevisione) { notifyBuzzResult("correct"); notifyBuzzer(false); }
     setCurrentWord(null);
     setWaitingForExtract(true);
@@ -1655,11 +1665,12 @@ function MainGame() {
     clearInterval(buzzTimerRef.current);
     if (!buzzed) setTimerRunning(false);
     const pts = isRaddoppio ? 2 : 1;
-    setScore(prev => { lastScoreRef.current = prev; return Math.max(0, prev - pts); });
-    setErrorCount(prev => { lastErrorRef.current = prev; return prev + 1; });
+    const snap = { score: scoreRef.current, correct: correctCountRef.current, error: errorCountRef.current };
+    setScore(p => Math.max(0, p - pts));
+    setErrorCount(p => p + 1);
     setHistory(p => [...p, { word: currentWord, correct: false }]);
     setLastResult("error");
-    setLastAction({ word: currentWord, correct: false });
+    setLastAction({ word: currentWord, wasCorrect: false, snap });
     if (!inRevisione) { notifyBuzzResult("error"); notifyBuzzer(false); }
     setCurrentWord(null);
     setWaitingForExtract(true);
@@ -1683,10 +1694,10 @@ function MainGame() {
   // Handle revisione — annulla ultima risposta e permette di rigiudicare
   const handleRevisione = () => {
     if (!lastAction || !waitingForExtract) return;
-    // Ripristina punteggio esatto precedente
-    setScore(lastScoreRef.current);
-    setCorrectCount(lastCorrectRef.current);
-    setErrorCount(lastErrorRef.current);
+    // Ripristina punteggio esatto dallo snapshot salvato
+    setScore(lastAction.snap.score);
+    setCorrectCount(lastAction.snap.correct);
+    setErrorCount(lastAction.snap.error);
     // Rimuovi ultima voce dalla cronologia
     setHistory(p => p.slice(0, -1));
     // Riporta la parola in stato attivo per rigiudicarla
