@@ -1531,11 +1531,12 @@ function MainGame() {
     setLastResult("error");
     setLastAction({ word: currentWord, correct: false, pts: isRaddoppio ? 2 : 1 });
     notifyBuzzResult("timeout");
+    notifyBuzzer(false);
     setCurrentWord(null);
     setWaitingForExtract(true);
     setBuzzed(false);
     setBuzzCountdown(0);
-  }, [currentWord, isRaddoppio, notifyBuzzResult]);
+  }, [currentWord, isRaddoppio, notifyBuzzResult, notifyBuzzer]);
 
   // Speech match logic
   useEffect(() => {
@@ -1689,8 +1690,9 @@ function MainGame() {
     setLastResult(null);
     setWaitingForExtract(false);
     setInRevisione(true);
-    // Timer NON riparte
+    // Timer NON riparte, buzzer disattivato
     setLastAction(null);
+    if (buzzerEnabled) notifyBuzzer(false);
   };
 
   const toggleRaddoppio = () => {
