@@ -1406,6 +1406,7 @@ function MainGame() {
   const [speechProcessed, setSpeechProcessed] = useState(false);
   const [manualOverride, setManualOverride] = useState(false);
   const [lastAction, setLastAction] = useState(null);
+  const [inRevisione, setInRevisione] = useState(false);
   const [roomCode, setRoomCode] = useState("");
   const [buzzerConnected, setBuzzerConnected] = useState(false);
   const [buzzed, setBuzzed] = useState(false);
@@ -1620,7 +1621,7 @@ function MainGame() {
   // Handle correct
   const handleCorrect = () => {
     if (waitingForExtract || !currentWord) return;
-    if (buzzerEnabled && !buzzed) return; // must buzz first in buzzer mode
+    if (buzzerEnabled && !buzzed && !inRevisione) return; // must buzz first in buzzer mode
     clearInterval(buzzTimerRef.current);
     if (!buzzed) setTimerRunning(false); // already stopped if buzzed
     const pts = isRaddoppio ? 2 : 1;
@@ -1629,18 +1630,18 @@ function MainGame() {
     setHistory(p => [...p, { word: currentWord, correct: true }]);
     setLastResult("correct");
     setLastAction({ word: currentWord, correct: true, pts: isRaddoppio ? 2 : 1 });
-    notifyBuzzResult("correct");
-    notifyBuzzer(false);
+    if (!inRevisione) { notifyBuzzResult("correct"); notifyBuzzer(false); }
     setCurrentWord(null);
     setWaitingForExtract(true);
     setBuzzed(false);
     setBuzzCountdown(0);
+    setInRevisione(false);
   };
 
   // Handle error
   const handleError = () => {
     if (waitingForExtract || !currentWord) return;
-    if (buzzerEnabled && !buzzed) return;
+    if (buzzerEnabled && !buzzed && !inRevisione) return;
     clearInterval(buzzTimerRef.current);
     if (!buzzed) setTimerRunning(false);
     const pts = isRaddoppio ? 2 : 1;
@@ -1649,12 +1650,12 @@ function MainGame() {
     setHistory(p => [...p, { word: currentWord, correct: false }]);
     setLastResult("error");
     setLastAction({ word: currentWord, correct: false, pts: isRaddoppio ? 2 : 1 });
-    notifyBuzzResult("error");
-    notifyBuzzer(false);
+    if (!inRevisione) { notifyBuzzResult("error"); notifyBuzzer(false); }
     setCurrentWord(null);
     setWaitingForExtract(true);
     setBuzzed(false);
     setBuzzCountdown(0);
+    setInRevisione(false);
   };
 
   /// Handle passo — ferma il tempo, scala un passo, lascia la parola visibile
@@ -1687,6 +1688,7 @@ function MainGame() {
     setLastWord(lastAction.word);
     setLastResult(null);
     setWaitingForExtract(false);
+    setInRevisione(true);
     // Timer NON riparte
     setLastAction(null);
   };
@@ -1703,7 +1705,7 @@ function MainGame() {
   const buzzPercent = buzzed ? (buzzCountdown / BUZZ_TIMEOUT) * 100 : 0;
 
   // Can press action buttons?
-  const canAct = buzzerEnabled ? (buzzed && !waitingForExtract) : !waitingForExtract;
+  const canAct = buzzerEnabled ? ((buzzed || inRevisione) && !waitingForExtract) : !waitingForExtract;
 
   // ─── SETUP ───
   if (gameState === "setup") {
