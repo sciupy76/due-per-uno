@@ -1405,6 +1405,7 @@ function MainGame() {
   const [speechText, setSpeechText] = useState(null);
   const [speechProcessed, setSpeechProcessed] = useState(false);
   const [manualOverride, setManualOverride] = useState(false);
+  const [lastAction, setLastAction] = useState(null);
   const [roomCode, setRoomCode] = useState("");
   const [buzzerConnected, setBuzzerConnected] = useState(false);
   const [buzzed, setBuzzed] = useState(false);
@@ -1548,6 +1549,7 @@ function MainGame() {
       setCorrectCount(p => p + 1);
       setHistory(p => [...p, { word: currentWord, correct: true, speechMatch: true }]);
       setLastResult("correct");
+      setLastAction({ word: currentWord, correct: true, pts: isRaddoppio ? 2 : 1 });
       notifyBuzzResult("correct");
       notifyBuzzer(false);
       setCurrentWord(null);
@@ -1605,6 +1607,7 @@ function MainGame() {
     setSpeechText(null);
     setSpeechProcessed(false);
     setManualOverride(false);
+    setLastAction(null);
     if (!buzzerEnabled) {
       setTimerRunning(true);
     } else {
@@ -1624,6 +1627,7 @@ function MainGame() {
     setCorrectCount(p => p + 1);
     setHistory(p => [...p, { word: currentWord, correct: true }]);
     setLastResult("correct");
+    setLastAction({ word: currentWord, correct: true, pts: isRaddoppio ? 2 : 1 });
     notifyBuzzResult("correct");
     notifyBuzzer(false);
     setCurrentWord(null);
@@ -1643,6 +1647,7 @@ function MainGame() {
     setErrorCount(p => p + 1);
     setHistory(p => [...p, { word: currentWord, correct: false }]);
     setLastResult("error");
+    setLastAction({ word: currentWord, correct: false, pts: isRaddoppio ? 2 : 1 });
     notifyBuzzResult("error");
     notifyBuzzer(false);
     setCurrentWord(null);
@@ -1661,6 +1666,28 @@ function MainGame() {
     setCurrentWord(null);
     setWaitingForExtract(true);
     if (buzzerEnabled) notifyBuzzer(false);
+  };
+
+  // Handle revisione — annulla ultima risposta e permette di rigiudicare
+  const handleRevisione = () => {
+    if (!lastAction || !waitingForExtract) return;
+    // Annulla punteggio
+    if (lastAction.correct) {
+      setScore(p => Math.max(0, p - lastAction.pts));
+      setCorrectCount(p => Math.max(0, p - 1));
+    } else {
+      setScore(p => p + lastAction.pts);
+      setErrorCount(p => Math.max(0, p - 1));
+    }
+    // Rimuovi ultima voce dalla cronologia
+    setHistory(p => p.slice(0, -1));
+    // Riporta la parola in stato attivo per rigiudicarla
+    setCurrentWord(lastAction.word);
+    setLastWord(lastAction.word);
+    setLastResult(null);
+    setWaitingForExtract(false);
+    // Timer NON riparte
+    setLastAction(null);
   };
 
   const toggleRaddoppio = () => {
@@ -1978,6 +2005,21 @@ function MainGame() {
           </div>
         )}
       </div>
+
+      {/* REVISIONE button - solo con speech attivo, dopo aver giudicato */}
+      {speechEnabled && waitingForExtract && lastAction && (
+        <div style={{ width:"100%", maxWidth:420, padding:"0 20px 6px" }}>
+          <button onClick={handleRevisione} style={{
+            width:"100%", padding:"10px", borderRadius:14,
+            border:"1px solid rgba(255,149,0,0.3)",
+            background:"rgba(255,149,0,0.1)",
+            color:"#FF9500",
+            fontSize:14, fontWeight:700, letterSpacing:1, cursor:"pointer",
+            fontFamily:F, textTransform:"uppercase", transition:"all 0.2s",
+            display:"flex", justifyContent:"center", alignItems:"center", gap:8
+          }}>↩ REVISIONE</button>
+        </div>
+      )}
 
       {/* PASSO button */}
       <div style={{ width:"100%", maxWidth:420, padding:"0 20px 10px" }}>
