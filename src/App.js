@@ -1528,6 +1528,7 @@ function MainGame() {
     setErrorCount(p => p + 1);
     setHistory(p => [...p, { word: currentWord, correct: false, buzzTimeout: true }]);
     setLastResult("error");
+    setLastAction({ word: currentWord, correct: false, pts: isRaddoppio ? 2 : 1 });
     notifyBuzzResult("timeout");
     setCurrentWord(null);
     setWaitingForExtract(true);
@@ -2063,7 +2064,7 @@ function MainGame() {
       </div>
 
       {/* Pulsante MANUALE - solo con speech attivo */}
-      {speechEnabled && buzzerEnabled && !waitingForExtract && !manualOverride && (
+      {speechEnabled && buzzerEnabled && buzzed && !waitingForExtract && !manualOverride && (
         <div style={{ width:"100%", maxWidth:420, padding:"0 20px 8px" }}>
           <button onClick={() => { setManualOverride(true); setSpeechProcessed(false); setSpeechText(null); }} style={{
             width:"100%", padding:"10px", borderRadius:14, border:"1px solid rgba(255,255,255,0.12)",
