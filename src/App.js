@@ -1184,11 +1184,17 @@ function BuzzerView({ initialRoomCode }) {
       setCanBuzz(payload.active);
       if (payload.speechEnabled !== undefined) setSpeechEnabled(payload.speechEnabled);
       if (payload.active) { setBuzzed(false); setResult(null); setListening(false); }
+      if (!payload.active) {
+        setListening(false);
+        try { if (recognitionRef.current) recognitionRef.current.abort(); } catch(e) {}
+      }
     });
 
     ch.on("broadcast", { event: "buzz_result" }, ({ payload }) => {
       setResult(payload.result);
       setBuzzed(false);
+      setListening(false);
+      try { if (recognitionRef.current) recognitionRef.current.abort(); } catch(e) {}
       setTimeout(() => setResult(null), 2000);
     });
 
@@ -1690,8 +1696,11 @@ function MainGame() {
     setLastResult(null);
     setWaitingForExtract(false);
     setInRevisione(true);
-    // Timer NON riparte, buzzer disattivato
+    // Timer NON riparte, buzzer disattivato, speech resettato
     setLastAction(null);
+    setSpeechText(null);
+    setSpeechProcessed(true);
+    setManualOverride(true);
     if (buzzerEnabled) notifyBuzzer(false);
   };
 
@@ -1925,8 +1934,8 @@ function MainGame() {
             <span style={{ fontSize:12, textTransform:"uppercase", letterSpacing:3, opacity:0.45, fontWeight:700, marginTop:4 }}>punti</span>
           </div>
           {buzzerEnabled && (
-            <div style={{ fontSize:10, color: buzzed ? "#FF9500" : "rgba(255,255,255,0.25)", marginTop:6, fontWeight:700, letterSpacing:1 }}>
-              {buzzed ? "🔔 BUZZATO!" : `🔔 ${roomCode}`}
+            <div style={{ fontSize:14, color: buzzed ? "#FF9500" : "rgba(255,255,255,0.45)", marginTop:6, fontWeight:800, letterSpacing:2 }}>
+              {buzzed ? "🔔 BUZZATO!" : `🔔 STANZA: ${roomCode}`}
             </div>
           )}
         </div>
