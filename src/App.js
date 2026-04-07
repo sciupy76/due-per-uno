@@ -986,7 +986,7 @@ const PAROLE_COMPOSTE = [
   "Stampa 3D","Onde gravitazionali","Materia oscura","Energia oscura",
   "Bosone di Higgs","Tavola periodica","Zero assoluto",
   "Velocità della luce","Velocità del suono","Barriera del suono",
-  "Fissione nucleare","Fusione nucleare","Reazione a catena",
+  "Fissione nucleare","Fusione nucleare","Indovina la parola!",
   "Effetto farfalla","Effetto domino","Effetto placebo",
   "Selezione naturale","Codice genetico","Doppia elica",
   "Campo magnetico","Punto di ebollizione","Punto di fusione",
@@ -1549,9 +1549,9 @@ function MainGame() {
     return (
       <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0a0e27,#1a1040 40%,#0d1b3e)", color:"#fff", fontFamily:F, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 20px", userSelect:"none", WebkitUserSelect:"none", WebkitTapHighlightColor:"transparent" }}>
         <div style={{ textAlign:"center", marginBottom:32 }}>
-          <div style={{ fontSize:64, marginBottom:8 }}>⛓️</div>
-          <h1 style={{ fontSize:38, fontWeight:900, margin:0, letterSpacing:"-1px", background:"linear-gradient(135deg,#fff,#a0c4ff)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Intesa Vincente</h1>
-          <p style={{ fontSize:14, color:"rgba(255,255,255,0.4)", margin:"8px 0 0", letterSpacing:4, textTransform:"uppercase", fontWeight:600 }}>Reazione a Catena</p>
+          <div style={{ fontSize:64, marginBottom:8 }}>🧠</div>
+          <h1 style={{ fontSize:38, fontWeight:900, margin:0, letterSpacing:"-1px", background:"linear-gradient(135deg,#fff,#a0c4ff)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Due per Uno</h1>
+          <p style={{ fontSize:14, color:"rgba(255,255,255,0.4)", margin:"8px 0 0", letterSpacing:4, textTransform:"uppercase", fontWeight:600 }}>Indovina la parola!</p>
         </div>
 
         {/* Time setting */}
