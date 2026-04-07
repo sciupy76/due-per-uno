@@ -1110,6 +1110,36 @@ function useFontLoader() {
   }, []);
 }
 
+// ═══════════════════════════════════════════════════
+// MATCHING VOCALE
+// ═══════════════════════════════════════════════════
+function normalizeWord(w) {
+  return w.toLowerCase().trim()
+    .replace(/^(il |lo |la |i |gli |le |un |una |uno |l'|l')/, "")
+    .replace(/[àáâ]/g,"a").replace(/[èéê]/g,"e").replace(/[ìíî]/g,"i")
+    .replace(/[òóô]/g,"o").replace(/[ùúû]/g,"u")
+    .replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const d = Array.from({length: m+1}, (_, i) => [i]);
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+(a[i-1]!==b[j-1]?1:0));
+  return d[m][n];
+}
+
+function matchWord(spoken, target) {
+  const s = normalizeWord(spoken);
+  const t = normalizeWord(target);
+  if (s === t) return true;
+  const maxDist = Math.min(2, Math.floor(t.length * 0.25));
+  if (levenshtein(s, t) <= maxDist) return true;
+  return false;
+}
+
 const F = "'Outfit', system-ui, -apple-system, sans-serif";
 
 // Dynamic font size for word display
@@ -1136,7 +1166,11 @@ function BuzzerView({ initialRoomCode }) {
   const [buzzed, setBuzzed] = useState(false);
   const [result, setResult] = useState(null); // "correct"|"error"|"timeout"
   const [canBuzz, setCanBuzz] = useState(false);
+  const [speechEnabled, setSpeechEnabled] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [micPermission, setMicPermission] = useState("unknown");
   const channelRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   // Join room
   const joinRoom = useCallback(() => {
@@ -1148,7 +1182,8 @@ function BuzzerView({ initialRoomCode }) {
 
     ch.on("broadcast", { event: "word_active" }, ({ payload }) => {
       setCanBuzz(payload.active);
-      if (payload.active) { setBuzzed(false); setResult(null); }
+      if (payload.speechEnabled !== undefined) setSpeechEnabled(payload.speechEnabled);
+      if (payload.active) { setBuzzed(false); setResult(null); setListening(false); }
     });
 
     ch.on("broadcast", { event: "buzz_result" }, ({ payload }) => {
@@ -1164,13 +1199,54 @@ function BuzzerView({ initialRoomCode }) {
     channelRef.current = ch;
   }, [client, roomCode]);
 
+  // Start speech recognition
+  const startListening = useCallback(() => {
+    if (!speechEnabled || !('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "it-IT";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setListening(true);
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript;
+      setListening(false);
+      if (channelRef.current) {
+        channelRef.current.send({ type: "broadcast", event: "speech_text", payload: { text } });
+      }
+    };
+    recognition.onerror = () => {
+      setListening(false);
+      if (channelRef.current) {
+        channelRef.current.send({ type: "broadcast", event: "speech_text", payload: { text: "" } });
+      }
+    };
+    recognition.onend = () => setListening(false);
+    recognition.start();
+  }, [speechEnabled]);
+
+  // Request mic permission on join
+  useEffect(() => {
+    if (joined && speechEnabled) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => setMicPermission("granted"))
+        .catch(() => setMicPermission("denied"));
+    }
+  }, [joined, speechEnabled]);
+
   // Send buzz
   const sendBuzz = useCallback(() => {
     if (!channelRef.current || buzzed || !canBuzz) return;
     setBuzzed(true);
     if (navigator.vibrate) navigator.vibrate(100);
     channelRef.current.send({ type: "broadcast", event: "buzz", payload: {} });
-  }, [buzzed, canBuzz]);
+    if (speechEnabled) {
+      setTimeout(() => startListening(), 100);
+    }
+  }, [buzzed, canBuzz, speechEnabled, startListening]);
 
   // Not joined yet - show room code entry
   if (!joined) {
@@ -1241,8 +1317,23 @@ function BuzzerView({ initialRoomCode }) {
       ) : buzzed ? (
         // Buzzed, waiting for result
         <div style={{ textAlign:"center" }}>
-          <div style={{ fontSize:72, fontWeight:900, color:"#4A90D9", animation:"pulse 1s infinite" }}>BUZZ!</div>
-          <div style={{ fontSize:16, color:"rgba(255,255,255,0.4)", marginTop:16 }}>In attesa del conduttore...</div>
+          {listening ? (
+            <>
+              <div style={{ fontSize:80, animation:"pulse 0.8s infinite" }}>🎤</div>
+              <div style={{ fontSize:28, fontWeight:900, color:"#FF9500", marginTop:16 }}>PARLA ORA!</div>
+              <div style={{ fontSize:14, color:"rgba(255,255,255,0.4)", marginTop:8 }}>Sto ascoltando...</div>
+            </>
+          ) : speechEnabled ? (
+            <>
+              <div style={{ fontSize:72, fontWeight:900, color:"#4A90D9", animation:"pulse 1s infinite" }}>BUZZ!</div>
+              <div style={{ fontSize:16, color:"rgba(255,255,255,0.4)", marginTop:16 }}>Risposta inviata, in attesa...</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize:72, fontWeight:900, color:"#4A90D9", animation:"pulse 1s infinite" }}>BUZZ!</div>
+              <div style={{ fontSize:16, color:"rgba(255,255,255,0.4)", marginTop:16 }}>In attesa del conduttore...</div>
+            </>
+          )}
         </div>
       ) : canBuzz ? (
         // Ready to buzz - entire screen is the button
@@ -1310,6 +1401,10 @@ function MainGame() {
 
   // Buzzer states
   const [buzzerEnabled, setBuzzerEnabled] = useState(false);
+  const [speechEnabled, setSpeechEnabled] = useState(false);
+  const [speechText, setSpeechText] = useState(null);
+  const [speechProcessed, setSpeechProcessed] = useState(false);
+  const [manualOverride, setManualOverride] = useState(false);
   const [roomCode, setRoomCode] = useState("");
   const [buzzerConnected, setBuzzerConnected] = useState(false);
   const [buzzed, setBuzzed] = useState(false);
@@ -1391,9 +1486,16 @@ function MainGame() {
         if (prev) return prev; // already buzzed
         setTimerRunning(false);
         setBuzzCountdown(BUZZ_TIMEOUT);
+        setSpeechText(null);
+        setSpeechProcessed(false);
+        setManualOverride(false);
         if (navigator.vibrate) navigator.vibrate(200);
         return true;
       });
+    });
+
+    ch.on("broadcast", { event: "speech_text" }, ({ payload }) => {
+      setSpeechText(payload.text || "");
     });
 
     ch.subscribe((status) => {
@@ -1406,9 +1508,9 @@ function MainGame() {
   // Notify buzzer about word state
   const notifyBuzzer = useCallback((active) => {
     if (channelRef.current && buzzerEnabled) {
-      channelRef.current.send({ type: "broadcast", event: "word_active", payload: { active } });
+      channelRef.current.send({ type: "broadcast", event: "word_active", payload: { active, speechEnabled } });
     }
-  }, [buzzerEnabled]);
+  }, [buzzerEnabled, speechEnabled]);
 
   // Send buzz result to buzzer
   const notifyBuzzResult = useCallback((result) => {
@@ -1432,6 +1534,31 @@ function MainGame() {
     setBuzzCountdown(0);
   }, [currentWord, isRaddoppio, notifyBuzzResult]);
 
+  // Speech match logic
+  useEffect(() => {
+    if (!speechEnabled || !buzzed || speechText === null || speechProcessed || manualOverride) return;
+    if (!currentWord) return;
+    setSpeechProcessed(true);
+
+    if (speechText && matchWord(speechText, currentWord)) {
+      // MATCH! Auto-corretta
+      clearInterval(buzzTimerRef.current);
+      const pts = isRaddoppio ? 2 : 1;
+      setScore(p => p + pts);
+      setCorrectCount(p => p + 1);
+      setHistory(p => [...p, { word: currentWord, correct: true, speechMatch: true }]);
+      setLastResult("correct");
+      notifyBuzzResult("correct");
+      notifyBuzzer(false);
+      setCurrentWord(null);
+      setWaitingForExtract(true);
+      setBuzzed(false);
+      setBuzzCountdown(0);
+      setSpeechText(null);
+    }
+    // Se non matcha: il countdown continua, il conduttore vede il testo e decide
+  }, [speechText, buzzed, speechEnabled, speechProcessed, manualOverride, currentWord]);
+
   // Start game
   const startGame = () => {
     initQueues();
@@ -1454,6 +1581,9 @@ function MainGame() {
     setIsRaddoppio(false);
     setBuzzed(false);
     setBuzzCountdown(0);
+    setSpeechText(null);
+    setSpeechProcessed(false);
+    setManualOverride(false);
     setGameState(buzzerEnabled ? "lobby" : "playing");
   };
 
@@ -1472,6 +1602,9 @@ function MainGame() {
     setWaitingForExtract(false);
     setBuzzed(false);
     setBuzzCountdown(0);
+    setSpeechText(null);
+    setSpeechProcessed(false);
+    setManualOverride(false);
     if (!buzzerEnabled) {
       setTimerRunning(true);
     } else {
@@ -1589,6 +1722,33 @@ function MainGame() {
           </div>
         </div>
 
+        {/* Speech toggle - solo se buzzer attivo */}
+        {buzzerEnabled && (
+          <div
+            onClick={() => setSpeechEnabled(p => !p)}
+            style={{
+              background: speechEnabled ? "rgba(255,149,0,0.15)" : "rgba(255,255,255,0.04)",
+              borderRadius:20, padding:"18px 24px", width:"100%", maxWidth:380,
+              border: speechEnabled ? "2px solid rgba(255,149,0,0.4)" : "1px solid rgba(255,255,255,0.08)",
+              marginBottom:24, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between",
+              transition:"all 0.2s"
+            }}
+          >
+            <div>
+              <div style={{ fontSize:16, fontWeight:700 }}>🎤 Riconoscimento vocale</div>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginTop:4 }}>Il giocatore risponde a voce, il sistema verifica</div>
+            </div>
+            <div style={{
+              width:52, height:30, borderRadius:15, padding:3,
+              background: speechEnabled ? "#FF9500" : "rgba(255,255,255,0.15)",
+              transition:"background 0.2s", display:"flex", alignItems:"center",
+              justifyContent: speechEnabled ? "flex-end" : "flex-start"
+            }}>
+              <div style={{ width:24, height:24, borderRadius:"50%", background:"#fff", transition:"all 0.2s" }} />
+            </div>
+          </div>
+        )}
+
         <button onClick={startGame} style={{ width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none", background:"linear-gradient(135deg,#4A90D9,#357ABD)", color:"#fff", fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer", boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F }}>
           {buzzerEnabled ? "CONFIGURA BUZZER" : "INIZIA IL GIOCO"}
         </button>
@@ -1643,6 +1803,12 @@ function MainGame() {
           boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F
         }}>INIZIA IL GIOCO</button>
 
+        {speechEnabled && (
+          <div style={{ marginTop:16, padding:"12px 20px", borderRadius:12, background:"rgba(255,149,0,0.1)", border:"1px solid rgba(255,149,0,0.25)", maxWidth:380, textAlign:"center" }}>
+            <div style={{ fontSize:13, color:"#FF9500", fontWeight:600 }}>🎤 Riconoscimento vocale attivo</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:4 }}>Il giocatore dovrà concedere l'accesso al microfono dal suo telefono</div>
+          </div>
+        )}
         <p style={{ marginTop:16, fontSize:13, color:"rgba(255,255,255,0.25)" }}>
           Puoi iniziare anche senza che il buzzer sia connesso
         </p>
@@ -1790,9 +1956,19 @@ function MainGame() {
                 {lastResult==="correct"?"✓ CORRETTA":lastResult==="passo"?"⏭ PASSO":"✗ SBAGLIATA"}
               </div>
             )}
-            {buzzed && (
+            {buzzed && !speechText && !speechProcessed && (
               <div style={{ marginTop:12, fontSize:16, fontWeight:800, letterSpacing:2, color:"#FF9500" }}>
-                🔔 BUZZATO! Conferma entro {Math.ceil(buzzCountdown)}s
+                {speechEnabled && !manualOverride ? "🎤 In ascolto..." : `🔔 BUZZATO! Conferma entro ${Math.ceil(buzzCountdown)}s`}
+              </div>
+            )}
+            {buzzed && speechText !== null && speechProcessed && !speechText && (
+              <div style={{ marginTop:12, fontSize:14, fontWeight:800, letterSpacing:1, color:"#FF9500" }}>
+                🎤 Non riconosciuto — Conferma manualmente ({Math.ceil(buzzCountdown)}s)
+              </div>
+            )}
+            {buzzed && speechText && speechProcessed && currentWord && (
+              <div style={{ marginTop:12, fontSize:14, fontWeight:800, letterSpacing:1, color:"#FF9500" }}>
+                🎤 Ha detto: "{speechText}" — Confermi? ({Math.ceil(buzzCountdown)}s)
               </div>
             )}
           </div>
@@ -1843,6 +2019,18 @@ function MainGame() {
           <span style={{ fontSize:18, fontWeight:900, color:"rgba(255,255,255,0.9)", letterSpacing:3 }}>SBAGLIATA</span>
         </button>
       </div>
+
+      {/* Pulsante MANUALE - solo con speech attivo */}
+      {speechEnabled && buzzerEnabled && !waitingForExtract && !manualOverride && (
+        <div style={{ width:"100%", maxWidth:420, padding:"0 20px 8px" }}>
+          <button onClick={() => { setManualOverride(true); setSpeechProcessed(false); setSpeechText(null); }} style={{
+            width:"100%", padding:"10px", borderRadius:14, border:"1px solid rgba(255,255,255,0.12)",
+            background:"rgba(255,255,255,0.06)", color:"rgba(255,255,255,0.5)",
+            fontSize:14, fontWeight:700, letterSpacing:1, cursor:"pointer",
+            fontFamily:F, textTransform:"uppercase", transition:"all 0.2s"
+          }}>🔇 MANUALE (ignora voce)</button>
+        </div>
+      )}
 
       {/* Mini stats */}
       <div style={{ display:"flex", gap:16, padding:"8px 0 28px", fontSize:16, fontWeight:800, letterSpacing:1 }}>
