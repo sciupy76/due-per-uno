@@ -1374,7 +1374,7 @@ function BuzzerView({ initialRoomCode }) {
         <div style={{ textAlign:"center" }}>
           <div style={{ fontSize:80 }}>{result === "correct" ? "✓" : "✗"}</div>
           <div style={{ fontSize:32, fontWeight:900, marginTop:16, color: result === "correct" ? "#34C759" : "#FF3B30" }}>
-            {result === "correct" ? "CORRETTA!" : result === "timeout" ? "TEMPO SCADUTO!" : "SBAGLIATA!"}
+            {result === "correct" ? "CORRETTA!" : result === "timeout" && !speechEnabled ? "TEMPO SCADUTO!" : "SBAGLIATA!"}
           </div>
         </div>
       ) : buzzed ? (
