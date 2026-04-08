@@ -1186,6 +1186,8 @@ function BuzzerView({ initialRoomCode }) {
       if (payload.active) { setBuzzed(false); setResult(null); setListening(false); }
       if (!payload.active) {
         setListening(false);
+        speechSentRef.current = true;
+        if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
         try { if (recognitionRef.current) recognitionRef.current.abort(); } catch(e) {}
       }
     });
@@ -1194,6 +1196,8 @@ function BuzzerView({ initialRoomCode }) {
       setResult(payload.result);
       setBuzzed(false);
       setListening(false);
+      speechSentRef.current = true;
+      if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
       try { if (recognitionRef.current) recognitionRef.current.abort(); } catch(e) {}
       setTimeout(() => setResult(null), 2000);
     });
@@ -1206,39 +1210,92 @@ function BuzzerView({ initialRoomCode }) {
   }, [client, roomCode]);
 
   // Start speech recognition
+  const speechSentRef = useRef(false);
+  const speechTimeoutRef = useRef(null);
+  const bestTranscriptRef = useRef("");
+
   const startListening = useCallback(() => {
     if (!speechEnabled || !('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
+    
+    // Cleanup precedente
+    try { if (recognitionRef.current) recognitionRef.current.abort(); } catch(e) {}
+    if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+    
+    speechSentRef.current = false;
+    bestTranscriptRef.current = "";
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = "it-IT";
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 3;
     recognitionRef.current = recognition;
 
+    const sendResult = (text) => {
+      if (speechSentRef.current) return;
+      speechSentRef.current = true;
+      setListening(false);
+      if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+      try { recognition.stop(); } catch(e) {}
+      if (channelRef.current) {
+        channelRef.current.send({ type: "broadcast", event: "speech_text", payload: { text: text || "" } });
+      }
+    };
+
     recognition.onstart = () => setListening(true);
+    
     recognition.onresult = (event) => {
-      const text = event.results[0][0].transcript;
-      setListening(false);
-      if (channelRef.current) {
-        channelRef.current.send({ type: "broadcast", event: "speech_text", payload: { text } });
+      // Raccogli il miglior risultato
+      let finalText = "";
+      let interimText = "";
+      for (let i = 0; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalText += event.results[i][0].transcript;
+        } else {
+          interimText += event.results[i][0].transcript;
+        }
+      }
+      bestTranscriptRef.current = finalText || interimText;
+      // Se abbiamo un risultato finale, invia subito
+      if (finalText) {
+        sendResult(finalText.trim());
       }
     };
-    recognition.onerror = () => {
-      setListening(false);
-      if (channelRef.current) {
-        channelRef.current.send({ type: "broadcast", event: "speech_text", payload: { text: "" } });
-      }
+    
+    recognition.onerror = (event) => {
+      // "no-speech" è normale, non è un errore fatale
+      if (event.error === "no-speech" || event.error === "aborted") return;
+      sendResult("");
     };
-    recognition.onend = () => setListening(false);
+    
+    recognition.onend = () => {
+      // Se non abbiamo ancora inviato, invia il miglior risultato raccolto
+      if (!speechSentRef.current) {
+        sendResult(bestTranscriptRef.current.trim());
+      }
+      setListening(false);
+    };
+    
     recognition.start();
+    
+    // Timeout di sicurezza: dopo 3.5 secondi invia il miglior risultato
+    speechTimeoutRef.current = setTimeout(() => {
+      if (!speechSentRef.current) {
+        sendResult(bestTranscriptRef.current.trim());
+      }
+    }, 3500);
   }, [speechEnabled]);
 
-  // Request mic permission on join
+  // Request mic permission + pre-warm on join
   useEffect(() => {
     if (joined && speechEnabled) {
       navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(() => setMicPermission("granted"))
+        .then((stream) => {
+          setMicPermission("granted");
+          // Pre-warm: avvia e ferma subito per scaldare il motore
+          stream.getTracks().forEach(t => t.stop());
+        })
         .catch(() => setMicPermission("denied"));
     }
   }, [joined, speechEnabled]);
@@ -1250,7 +1307,7 @@ function BuzzerView({ initialRoomCode }) {
     if (navigator.vibrate) navigator.vibrate(100);
     channelRef.current.send({ type: "broadcast", event: "buzz", payload: {} });
     if (speechEnabled) {
-      setTimeout(() => startListening(), 100);
+      startListening();
     }
   }, [buzzed, canBuzz, speechEnabled, startListening]);
 
