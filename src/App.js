@@ -1672,6 +1672,31 @@ function MainGame() {
     setGameState("playing");
   };
 
+  // Nuova manche — mantiene stanza e buzzer connesso
+  const restartGame = () => {
+    initQueues();
+    setTimeLeft(timeLimit);
+    setScore(0);
+    setCorrectCount(0);
+    setErrorCount(0);
+    setPassiRimanenti(3);
+    setHistory([]);
+    setCurrentWord(null);
+    setLastWord(null);
+    setLastResult(null);
+    setWaitingForExtract(true);
+    setTimerRunning(false);
+    setIsRaddoppio(false);
+    setBuzzed(false);
+    setBuzzCountdown(0);
+    setSpeechText(null);
+    setSpeechProcessed(false);
+    setManualOverride(false);
+    setLastAction(null);
+    setInRevisione(false);
+    setGameState("playing");
+  };
+
   // Extract word
   const extractWord = () => {
     if (timeLeft <= 0 || !waitingForExtract) return;
@@ -1957,7 +1982,15 @@ function MainGame() {
             </div>
           </div>
         )}
-        <button onClick={()=>{setGameState("setup");setIsRaddoppio(false);setBuzzerEnabled(false);if(channelRef.current)channelRef.current.unsubscribe();}} style={{ width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none", background:"linear-gradient(135deg,#4A90D9,#357ABD)", color:"#fff", fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer", boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F }}>GIOCA ANCORA</button>
+        {buzzerEnabled ? (
+          <>
+            <button onClick={restartGame} style={{ width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none", background:"linear-gradient(135deg,#2ECC71,#27AE60)", color:"#fff", fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer", boxShadow:"0 8px 32px rgba(46,204,113,0.35)", fontFamily:F, marginBottom:12 }}>NUOVA MANCHE</button>
+            <div style={{ fontSize:12, color:"rgba(255,255,255,0.35)", textAlign:"center", marginBottom:16 }}>Stessa stanza · Buzzer connesso · {roomCode}</div>
+            <button onClick={()=>{setGameState("setup");setIsRaddoppio(false);setBuzzerEnabled(false);setSpeechEnabled(false);if(channelRef.current)channelRef.current.unsubscribe();}} style={{ width:"100%", maxWidth:380, padding:"14px 20px", borderRadius:14, border:"1px solid rgba(255,255,255,0.12)", background:"rgba(255,255,255,0.06)", color:"rgba(255,255,255,0.5)", fontSize:16, fontWeight:700, letterSpacing:1, cursor:"pointer", fontFamily:F }}>TORNA AL MENU</button>
+          </>
+        ) : (
+          <button onClick={()=>{setGameState("setup");setIsRaddoppio(false);}} style={{ width:"100%", maxWidth:380, padding:"22px 20px", borderRadius:18, border:"none", background:"linear-gradient(135deg,#4A90D9,#357ABD)", color:"#fff", fontSize:22, fontWeight:900, letterSpacing:2, cursor:"pointer", boxShadow:"0 8px 32px rgba(74,144,217,0.35)", fontFamily:F }}>GIOCA ANCORA</button>
+        )}
       </div>
     );
   }
